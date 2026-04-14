@@ -64,7 +64,8 @@
         <option>横浜駅前店</option>
         <option>大阪梅田店</option>
         <option>大阪難波店</option>
-        <option>Lodge東京上野店</option>
+        <option>探偵キャンプX 上野</option>
+        <option>探偵キャンプX 横浜</option>
       </select>
 
       <div class="section-label">スタッフ</div>
@@ -77,7 +78,6 @@
         <option>さくら</option>
         <option>うえんつ</option>
         <option>スパイシー</option>
-        <option>こよみ</option>
         <option>こまち</option>
         <option>澪</option>
         <option>晴雨*</option>
@@ -90,6 +90,7 @@
         <option>あーる</option>
         <option>かいちょー</option>
         <option>ユエ</option>
+        <option>わさび</option>
       </select>
 
       <div class="section-label">シフト区分</div>
@@ -106,10 +107,10 @@
         <div class="section-label">公演作品</div>
         <select id="gm-title">
           <option value="">選択してください</option>
-          <option value="8CAMP" data-allowance="1000">8CAMP（グレードA / GM手当 ¥1,000）</option>
-          <option value="夏色漂流詩" data-allowance="500">夏色漂流詩（グレードB / GM手当 ¥500）</option>
-          <option value="夜明ケヨリモ向コウ側" data-allowance="500">夜明ケヨリモ向コウ側（グレードB / GM手当 ¥500）</option>
-          <option value="あなたの原罪" data-allowance="0">あなたの原罪（グレードC / GM手当なし）</option>
+          <option value="8CAMP" data-allowance="1000">8CAMP</option>
+          <option value="夏色漂流詩" data-allowance="500">夏色漂流詩</option>
+          <option value="夜明ケヨリモ向コウ側" data-allowance="500">夜明ケヨリモ向コウ側</option>
+          <option value="あなたの原罪" data-allowance="0">あなたの原罪</option>
         </select>
         <div class="section-label">時間帯</div>
         <select id="gm-session">
@@ -186,21 +187,19 @@
   // GM公演の店舗別時間帯
   // =====================
   const GM_SESSIONS = {
-    '横浜駅前店': [
-      { label: '昼 10:15〜14:45', val: '横浜昼', in: '10:15', out: '14:45' },
-      { label: '夜 15:45〜20:15', val: '横浜夜', in: '15:45', out: '20:15' }
-    ],
     '大阪梅田店': [
       { label: '夜 18:15〜22:45', val: '梅田夜', in: '18:15', out: '22:45' }
     ],
     '大阪難波店': [
       { label: '夜 18:15〜22:45', val: '難波夜', in: '18:15', out: '22:45' }
     ],
-    'Lodge東京上野店': [
-      { label: '昼（4h）12:15〜16:45',   val: '上野昼4h',   in: '12:15', out: '16:45' },
-      { label: '夜（4h）18:15〜22:45',   val: '上野夜4h',   in: '18:15', out: '22:45' },
-      { label: '昼（4.5h）12:15〜17:15', val: '上野昼4.5h', in: '12:15', out: '17:15' },
-      { label: '夜（4.5h）18:15〜23:15', val: '上野夜4.5h', in: '18:15', out: '23:15' }
+    '探偵キャンプX 上野': [
+      { label: '昼 12:45〜17:15', val: '上野昼', in: '12:45', out: '17:15' },
+      { label: '夜 18:15〜22:45', val: '上野夜', in: '18:15', out: '22:45' }
+    ],
+    '探偵キャンプX 横浜': [
+      { label: '昼 10:15〜14:45', val: '横浜昼', in: '10:15', out: '14:45' },
+      { label: '夜 15:45〜20:15', val: '横浜夜', in: '15:45', out: '20:15' }
     ]
   };
 
@@ -447,9 +446,52 @@
   }
 
   // =====================
+  // 交通費データ
+  // 列順：東京銀座店, 東京新宿店, 東京池袋店, 横浜駅前店, 大阪梅田店, 大阪難波店, 探偵キャンプX 上野, 探偵キャンプX 横浜
+  // =====================
+  const TRANSPORT = {
+    // スタッフ名: { home: [所属店舗], fare: { 店舗名: 実費 } }
+    'うえんつ':  { home: ['東京銀座店','探偵キャンプX 上野'], fare: {'東京銀座店':440,'東京新宿店':720,'東京池袋店':720,'横浜駅前店':1260,'大阪梅田店':0,'大阪難波店':0,'探偵キャンプX 上野':440,'探偵キャンプX 横浜':1260} },
+    'スパイシー': { home: ['横浜駅前店','探偵キャンプX 横浜'], fare: {'東京銀座店':2240,'東京新宿店':1120,'東京池袋店':1120,'横浜駅前店':740,'大阪梅田店':0,'大阪難波店':0,'探偵キャンプX 上野':2240,'探偵キャンプX 横浜':740} },
+    'こまち':    { home: ['東京新宿店'], fare: {'東京銀座店':920,'東京新宿店':800,'東京池袋店':800,'横浜駅前店':1040,'大阪梅田店':0,'大阪難波店':0,'探偵キャンプX 上野':920,'探偵キャンプX 横浜':1040} },
+    'さくら':    { home: ['横浜駅前店','探偵キャンプX 横浜'], fare: {'東京銀座店':1740,'東京新宿店':1780,'東京池袋店':1780,'横浜駅前店':600,'大阪梅田店':0,'大阪難波店':0,'探偵キャンプX 上野':1740,'探偵キャンプX 横浜':600} },
+    '澪':        { home: ['東京新宿店'], fare: {'東京銀座店':2200,'東京新宿店':2480,'東京池袋店':0,'横浜駅前店':3240,'大阪梅田店':0,'大阪難波店':0,'探偵キャンプX 上野':2200,'探偵キャンプX 横浜':3240} },
+    '晴雨*':     { home: ['東京銀座店','東京新宿店','横浜駅前店'], fare: {'東京銀座店':436,'東京新宿店':396,'東京池袋店':396,'横浜駅前店':406,'大阪梅田店':0,'大阪難波店':0,'探偵キャンプX 上野':436,'探偵キャンプX 横浜':406} },
+    '将軍':      { home: ['東京銀座店'], fare: {'東京銀座店':495,'東京新宿店':460,'東京池袋店':460,'横浜駅前店':735,'大阪梅田店':0,'大阪難波店':0,'探偵キャンプX 上野':495,'探偵キャンプX 横浜':735} },
+    'LEOMAX':    { home: [], fare: {} },
+    'SASA':      { home: [], fare: {} },
+    'わいわい':  { home: [], fare: {} },
+    'Kちゃん。': { home: ['大阪梅田店','大阪難波店'], fare: {} },
+    'まっき→':  { home: ['大阪梅田店','大阪難波店'], fare: {} },
+    'ねる':      { home: ['大阪梅田店'], fare: {} },
+    'あお':      { home: ['大阪梅田店'], fare: {} },
+    'ライチュウ':{ home: ['東京池袋店'], fare: {} },
+    'オータニ':  { home: ['東京池袋店'], fare: {} },
+    'あーる':    { home: ['東京池袋店'], fare: {} },
+    'かいちょー':{ home: ['東京池袋店'], fare: {} },
+    'ユエ':      { home: ['東京銀座店'], fare: {} },
+    'わさび':    { home: ['東京銀座店'], fare: {} },
+  };
+
+  function calcTransport(staff, store) {
+    const data = TRANSPORT[staff];
+    if (!data) return 0;
+    const fare = data.fare[store] || 0;
+    if (fare === 0) return 0;
+    const isHome = data.home.includes(store);
+    if (isHome) {
+      // 所属店舗：実費 or 500円の安い方
+      return Math.min(fare, 500);
+    } else {
+      // ヘルプ：実費全額
+      return fare;
+    }
+  }
+
+  // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzdRbMMmHTRRzcrj0NjN6RtdzxsRXZzVi8bTT6UGXdLUh3M9wvKKvxF2L9gttjkl8Eo/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxY1OPSj2BgcOVkrmVN22iRbkaVFU1RbFo7sSSq6mYwlaSQwzriaw5l9oVx9jnyk9TB/exec';
 
   function sendData() {
     if (!currentEntry) return;
@@ -457,6 +499,9 @@
     const btn = document.getElementById('btn-send');
     btn.textContent = '送信中...';
     btn.disabled = true;
+
+    const transport = calcTransport(currentEntry.staff, currentEntry.store);
+    const totalWithTransport = (currentEntry.calcPay ? currentEntry.calcPay.total : 0) + transport;
 
     const payload = {
       staff:      currentEntry.staff,
@@ -472,6 +517,8 @@
       allowance:  currentEntry.allowance || 0,
       calcPay:    currentEntry.calcPay,
       workMins:   currentEntry.calcPay ? currentEntry.calcPay.workMins : 0,
+      transport:  transport,
+      totalWithTransport: totalWithTransport,
       clientIP:   clientIP,
       errors:     currentEntry.errors
     };
