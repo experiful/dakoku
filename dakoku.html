@@ -130,7 +130,13 @@
     <div class="card hidden" id="clock-out-card">
       <div class="section-label">退勤打刻</div>
 
-      <!-- 通常退勤 -->
+      <!-- 早番退勤（17:00固定） -->
+      <div id="early-checkout-wrap" class="hidden">
+        <div class="gm-notice">早番のシフト終了時刻は17:00です</div>
+        <button class="btn btn-out" onclick="clockOut()">退勤</button>
+      </div>
+
+      <!-- 通常退勤（遅番・全日） -->
       <div id="checkout-wrap">
         <select id="checkout-type" onchange="onCheckoutTypeChange()">
           <option value="">退勤パターンを選択</option>
@@ -262,8 +268,10 @@
   function onShiftChange() {
     const v = getVal('shift-type');
     document.getElementById('gm-block').style.display = (v === 'gm') ? 'block' : 'none';
-    const isGm = v === 'gm';
-    document.getElementById('checkout-wrap').classList.toggle('hidden', isGm);
+    const isGm    = v === 'gm';
+    const isEarly = v === 'early';
+    document.getElementById('early-checkout-wrap').classList.toggle('hidden', !isEarly);
+    document.getElementById('checkout-wrap').classList.toggle('hidden', isGm || isEarly);
     document.getElementById('gm-checkout-wrap').classList.toggle('hidden', !isGm);
     if (isGm) updateGmSessions();
   }
@@ -337,7 +345,7 @@
 
     // 遅刻チェック（GM公演含む全シフト）
     if (toMins(time) > toMins(entry.wageIn)) {
-      entry.errors.push('出勤打刻時刻（' + time + '）がシフト開始時刻（' + entry.wageIn + '）より遅れています');
+      entry.errors.push('出勤打刻（' + time + '）がシフト開始時刻より遅れています');
     }
 
     currentEntry = entry;
@@ -399,7 +407,7 @@
     const normalPay = Math.round(workMins / 60 * wage);
     // 深夜割増手当：22時以降の時間 × 時給 × 0.25（25%部分のみ）
     const latePay = Math.round(lateMins / 60 * wage * 0.25);
-    return { normal: normalPay, late: latePay, total: normalPay + latePay + allowance, workMins };
+    return { normal: normalPay, late: latePay, total: normalPay + latePay + allowance, workMins, lateMins };
   }
 
   function clockOut() {
@@ -411,6 +419,11 @@
 
     if (shift === 'gm') {
       wageOut = currentEntry.wageOut;
+    } else if (shift === 'early') {
+      wageOut = '17:00';
+      if (toMins(time) < toMins('17:00')) {
+        outErrors.push('退勤打刻（' + time + '）がシフト終了時刻より早いです');
+      }
     } else {
       const type = getVal('checkout-type');
       if (!type) { alert('退勤パターンを選択してください'); return; }
@@ -426,13 +439,13 @@
 
       // 退勤エラーチェック
       if (type === 'a' && toMins(time) < toMins('21:00')) {
-        outErrors.push('退勤打刻（' + time + '）が21:00より早いです');
+        outErrors.push('退勤打刻（' + time + '）がシフト終了時刻より早いです');
       }
       if (type === 'b' && lastCustomer && toMins(time) < toMins(lastCustomer)) {
-        outErrors.push('退勤打刻（' + time + '）が最終顧客退店時刻（' + lastCustomer + '）より早いです');
+        outErrors.push('退勤打刻（' + time + '）がシフト終了時刻より早いです');
       }
       if (type === 'c' && toMins(time) < toMins('23:00')) {
-        outErrors.push('退勤打刻（' + time + '）が23:00より早いです');
+        outErrors.push('退勤打刻（' + time + '）がシフト終了時刻より早いです');
       }
     }
 
@@ -469,7 +482,7 @@
     const errorCount = allErrors.length;
     const notice = document.getElementById('error-notice');
     if (errorCount > 0) {
-      notice.textContent = '⚠️エラー' + errorCount + '件。エラー内容について別途報告すること';
+      notice.textContent = '⚠️【エラー' + errorCount + '件】エラー内容について別途報告すること';
       notice.classList.remove('hidden');
     } else {
       notice.classList.add('hidden');
@@ -522,7 +535,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwQW-c2qX3JDByW37dX2o_AEVmkiIO-6y_-iLTwSkJBCT37hDE8B9qT6-Gy9NYODmW0/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzeqt_u30FKi8LNQ6pcM56gY7ktG1ZfA3ORqf2-XXhRhhp_U4tkGpTG3C2o9CujkQc/exec';
 
   function sendData() {
     if (!currentEntry) return;
@@ -548,6 +561,7 @@
       allowance:  currentEntry.allowance || 0,
       calcPay:    currentEntry.calcPay,
       workMins:   currentEntry.calcPay ? currentEntry.calcPay.workMins : 0,
+      lateMins:   currentEntry.calcPay ? currentEntry.calcPay.lateMins : 0,
       transport:  transport,
       totalWithTransport: totalWithTransport,
       clientIP:   clientIP,
