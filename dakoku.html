@@ -439,7 +439,10 @@
     currentEntry.outTime      = time;
     currentEntry.wageOut      = wageOut;
     currentEntry.lastCustomer = lastCustomer;
-    if (outErrors.length) currentEntry.errors.push(...outErrors);
+
+    // 出勤エラー（遅刻）だけ残して退勤エラーは毎回上書き
+    const inErrors = currentEntry.errors.filter(e => e.includes('シフト開始時刻'));
+    currentEntry.errors = [...inErrors, ...outErrors];
 
     const pay = calcWage(currentEntry.wageIn, wageOut, 1226, currentEntry.allowance, currentEntry.shift);
     currentEntry.calcPay = pay;
