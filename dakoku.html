@@ -142,11 +142,11 @@
           <option value="">退勤パターンを選択</option>
           <option value="a">21:00退勤（最終顧客20:50以前）</option>
           <option value="b">21:10〜23:00退勤（最終顧客時刻を入力）</option>
-          <option value="c">23:10退勤（最終顧客23:00）</option>
+          <option value="c">23:10退勤（最終顧客23:00以降）</option>
         </select>
         <div id="last-customer-block" class="hidden">
           <div class="section-label">最終顧客退店時刻</div>
-          <input type="time" id="last-customer-time" min="21:00" max="23:00" onchange="validateLastCustomer()" />
+          <input type="time" id="last-customer-time" min="20:51" max="22:59" onchange="validateLastCustomer()" />
           <div class="notice-sm">10分後（10分単位切り上げ）がシフト終了時刻となります</div>
         </div>
         <button class="btn btn-out" onclick="clockOut()">退勤</button>
@@ -283,12 +283,12 @@
   function validateLastCustomer() {
     const val = getVal('last-customer-time');
     if (!val) return;
-    if (toMins(val) < toMins('21:00')) {
-      alert('最終顧客退店時刻は21:00以降を入力してください');
-      document.getElementById('last-customer-time').value = '21:00';
-    } else if (toMins(val) > toMins('23:00')) {
-      alert('最終顧客退店時刻は23:00以前を入力してください');
-      document.getElementById('last-customer-time').value = '23:00';
+    if (toMins(val) < toMins('20:51')) {
+      alert('最終顧客退店時刻は20:51以降を入力してください');
+      document.getElementById('last-customer-time').value = '20:51';
+    } else if (toMins(val) > toMins('22:59')) {
+      alert('最終顧客退店時刻は22:59以前を入力してください');
+      document.getElementById('last-customer-time').value = '22:59';
     }
   }
 
@@ -345,7 +345,7 @@
 
     // 遅刻チェック（GM公演含む全シフト）
     if (toMins(time) > toMins(entry.wageIn)) {
-      entry.errors.push('出勤打刻（' + time + '）がシフト開始時刻より遅れています');
+      entry.errors.push('出勤打刻時刻（' + time + '）がシフト開始時刻（' + entry.wageIn + '）より遅れています');
     }
 
     currentEntry = entry;
@@ -422,7 +422,7 @@
     } else if (shift === 'early') {
       wageOut = '17:00';
       if (toMins(time) < toMins('17:00')) {
-        outErrors.push('退勤打刻（' + time + '）がシフト終了時刻より早いです');
+        outErrors.push('退勤打刻時刻（' + time + '）がシフト終了時刻（17:00）より早いです');
       }
     } else {
       const type = getVal('checkout-type');
@@ -430,8 +430,8 @@
       if (type === 'b') {
         lastCustomer = getVal('last-customer-time');
         if (!lastCustomer) { alert('最終顧客退店時刻を入力してください'); return; }
-        if (toMins(lastCustomer) < toMins('21:00') || toMins(lastCustomer) > toMins('23:00')) {
-          alert('最終顧客退店時刻は21:00〜23:00の範囲で入力してください');
+        if (toMins(lastCustomer) < toMins('20:51') || toMins(lastCustomer) > toMins('22:59')) {
+          alert('最終顧客退店時刻は20:51〜22:59の範囲で入力してください');
           return;
         }
       }
@@ -439,13 +439,13 @@
 
       // 退勤エラーチェック
       if (type === 'a' && toMins(time) < toMins('21:00')) {
-        outErrors.push('退勤打刻（' + time + '）がシフト終了時刻より早いです');
+        outErrors.push('退勤打刻時刻（' + time + '）がシフト終了時刻（21:00）より早いです');
       }
       if (type === 'b' && lastCustomer && toMins(time) < toMins(lastCustomer)) {
-        outErrors.push('退勤打刻（' + time + '）がシフト終了時刻より早いです');
+        outErrors.push('退勤打刻時刻（' + time + '）が最終顧客退店時刻（' + lastCustomer + '）より早いです');
       }
       if (type === 'c' && toMins(time) < toMins('23:00')) {
-        outErrors.push('退勤打刻（' + time + '）がシフト終了時刻より早いです');
+        outErrors.push('退勤打刻時刻（' + time + '）が最終顧客退店時刻（23:00）より早いです');
       }
     }
 
