@@ -140,7 +140,7 @@
         </select>
         <div id="last-customer-block" class="hidden">
           <div class="section-label">最終顧客退店時刻</div>
-          <input type="time" id="last-customer-time" min="21:00" max="23:00" />
+          <input type="time" id="last-customer-time" min="21:00" max="23:00" onchange="validateLastCustomer()" />
           <div class="notice-sm">10分後（10分単位切り上げ）がシフト終了時刻となります</div>
         </div>
         <button class="btn btn-out" onclick="clockOut()">退勤</button>
@@ -154,6 +154,7 @@
 
       <div id="out-result-box" class="hidden" style="margin-top:12px"></div>
       <button class="btn btn-send hidden" id="btn-send" onclick="sendData()" style="margin-top:12px">送信</button>
+      <div id="error-notice" class="hidden" style="font-size:13px;color:#c0392b;background:#fde8e8;padding:8px 12px;border-radius:8px;margin-top:8px;line-height:1.6;">エラーあり。エラー内容について別途報告すること</div>
     </div>
   </div>
 
@@ -203,8 +204,7 @@
     ]
   };
 
-  // 打刻ログ（送信前に蓄積、Google Sheets連携時にここを書き換える）
-  let logs = [];
+  // 打刻中のデータ
   let currentEntry = null;
 
   // =====================
@@ -272,6 +272,18 @@
     document.getElementById('last-customer-block').classList.toggle('hidden', getVal('checkout-type') !== 'b');
   }
 
+  function validateLastCustomer() {
+    const val = getVal('last-customer-time');
+    if (!val) return;
+    if (toMins(val) < toMins('21:00')) {
+      alert('最終顧客退店時刻は21:00以降を入力してください');
+      document.getElementById('last-customer-time').value = '21:00';
+    } else if (toMins(val) > toMins('23:00')) {
+      alert('最終顧客退店時刻は23:00以前を入力してください');
+      document.getElementById('last-customer-time').value = '23:00';
+    }
+  }
+
   function getVal(id) { return document.getElementById(id).value; }
 
   function validateForm() {
@@ -305,12 +317,12 @@
     const wageInMap = { early: '11:20', late: '18:00', full: '11:20' };
 
     const entry = {
-      id: Date.now(), staff, store, shift,
+      staff, store, shift,
       inTime: time,
       wageIn: wageInMap[shift] || time,
       outTime: null, wageOut: null,
       lastCustomer: null, allowance: 0,
-      adminNote: '', errors: []
+      errors: []
     };
 
     if (shift === 'gm') {
@@ -337,7 +349,7 @@
     let html = `
       <div class="result-row"><span class="result-label">店舗</span><span class="result-val">${store}</span></div>
       <div class="result-row"><span class="result-label">スタッフ</span><span class="result-val">${staff}</span></div>
-      <div class="result-row"><span class="result-label">シフト区分</span><span class="result-val">${labelShift(shift, entry.gmTitle)}</span></div>
+      <div class="result-row"><span class="result-label">シフト区分</span><span class="result-val">${labelShift(shift)}</span></div>
       <div class="result-row"><span class="result-label">出勤打刻時刻</span><span class="result-val">${time}${entry.errors.length ? '<span class="error-badge">遅刻</span>' : ''}</span></div>
       <div class="result-row"><span class="result-label">シフト開始時刻</span><span class="result-val">${entry.wageIn}</span></div>
     `;
@@ -350,7 +362,7 @@
     document.getElementById('clock-out-card').classList.remove('hidden');
   }
 
-  function labelShift(s, gmTitle) {
+  function labelShift(s) {
     const m = { early: '早番', late: '遅番', full: '全日', gm: 'GM公演' };
     return m[s] || s;
   }
@@ -381,10 +393,12 @@
     const midnight = 22 * 60;
     const outMins = toMins(wageOut);
     const inMins  = toMins(wageIn);
+    // 深夜時間（22時以降）
     const lateMins = outMins > midnight ? outMins - Math.max(inMins, midnight) : 0;
-    const normalMins = (workMins - lateMins > 0) ? workMins - lateMins : 0;
-    const normalPay = Math.round(normalMins / 60 * wage);
-    const latePay   = Math.round(lateMins   / 60 * wage * 1.25);
+    // 時間給：全労働時間 × 時給
+    const normalPay = Math.round(workMins / 60 * wage);
+    // 深夜割増手当：22時以降の時間 × 時給 × 0.25（25%部分のみ）
+    const latePay = Math.round(lateMins / 60 * wage * 0.25);
     return { normal: normalPay, late: latePay, total: normalPay + latePay + allowance, workMins };
   }
 
@@ -403,6 +417,10 @@
       if (type === 'b') {
         lastCustomer = getVal('last-customer-time');
         if (!lastCustomer) { alert('最終顧客退店時刻を入力してください'); return; }
+        if (toMins(lastCustomer) < toMins('21:00') || toMins(lastCustomer) > toMins('23:00')) {
+          alert('最終顧客退店時刻は21:00〜23:00の範囲で入力してください');
+          return;
+        }
       }
       wageOut = calcWageOut(type, lastCustomer);
 
@@ -443,6 +461,16 @@
     box.innerHTML = html;
     box.classList.remove('hidden');
     document.getElementById('btn-send').classList.remove('hidden');
+    // エラーがある場合は注意メッセージを表示
+    const allErrors = currentEntry.errors || [];
+    const errorCount = allErrors.length;
+    const notice = document.getElementById('error-notice');
+    if (errorCount > 0) {
+      notice.textContent = '⚠️エラー' + errorCount + '件。エラー内容について別途報告すること';
+      notice.classList.remove('hidden');
+    } else {
+      notice.classList.add('hidden');
+    }
   }
 
   // =====================
@@ -491,7 +519,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxY1OPSj2BgcOVkrmVN22iRbkaVFU1RbFo7sSSq6mYwlaSQwzriaw5l9oVx9jnyk9TB/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzoULOW3lTzCrorLBf-37Nd4dBYC78Qwelp_i_Te0xiHCu9vvOT3qxw_QHJIDnfLuRc/exec';
 
   function sendData() {
     if (!currentEntry) return;
@@ -506,7 +534,7 @@
     const payload = {
       staff:      currentEntry.staff,
       store:      currentEntry.store,
-      shiftLabel: labelShift(currentEntry.shift, currentEntry.gmTitle),
+      shiftLabel: labelShift(currentEntry.shift),
       inTime:     currentEntry.inTime,
       wageIn:     currentEntry.wageIn,
       outTime:    currentEntry.outTime,
@@ -530,7 +558,6 @@
       body: JSON.stringify(payload)
     })
     .then(() => {
-      logs.push({ ...currentEntry });
       document.getElementById('main-view').classList.add('hidden');
       document.getElementById('sent-view').classList.remove('hidden');
     })
