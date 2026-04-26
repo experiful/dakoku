@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiful 打刻管理</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: #f5f5f0; min-height: 100vh; }
+  .app { max-width: 480px; margin: 0 auto; padding: 1rem; }
+  .header { text-align: center; padding: 1.5rem 0 1rem; }
+  .header h1 { font-size: 20px; font-weight: 500; color: #1a1a1a; }
+  .header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .card { background: #fff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-label { font-size: 12px; color: #888; margin-bottom: 8px; font-weight: 500; letter-spacing: 0.03em; }
+  select, input[type="time"] {
+    width: 100%; padding: 9px 12px;
+    border: 0.5px solid rgba(0,0,0,0.2);
+    border-radius: 8px; font-size: 14px;
+    color: #1a1a1a; background: #fff; margin-bottom: 12px;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  input[type="time"] { background-image: none; }
+  select:disabled { opacity: 0.5; }
+  .btn { width: 100%; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: opacity 0.15s; margin-top: 4px; }
+  .btn-in { background: #1D9E75; color: #fff; }
+  .btn-out { background: #E24B4A; color: #fff; }
+  .btn-send { background: #2563EB; color: #fff; border: none; }
+  .btn:hover { opacity: 0.85; }
+  .result-box { background: #f5f5f0; border-radius: 8px; padding: 1rem; margin-top: 12px; }
+  .result-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 5px 0; border-bottom: 0.5px solid rgba(0,0,0,0.08); }
+  .result-row:last-child { border-bottom: none; }
+  .result-label { color: #888; }
+  .result-val { color: #1a1a1a; font-weight: 500; }
+  .error-badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 20px; background: #fde8e8; color: #c0392b; margin-left: 6px; }
+  .error-msg { font-size: 12px; color: #c0392b; background: #fde8e8; padding: 8px 12px; border-radius: 8px; margin-top: 8px; line-height: 1.6; }
+  .gm-block { display: none; }
+  .notice-sm { font-size: 12px; color: #888; background: #f5f5f0; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; line-height: 1.6; }
+  .gm-notice { font-size: 13px; color: #888; background: #f5f5f0; padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; line-height: 1.6; }
+  .hidden { display: none; }
+  .sent-msg { text-align: center; padding: 1.5rem 0; font-size: 14px; color: #888; }
+  .sent-icon { font-size: 40px; margin-bottom: 8px; color: #1D9E75; }
+  .sent-title { font-weight: 500; color: #1a1a1a; margin-bottom: 4px; font-size: 16px; }
+</style>
+</head>
+<body>
+<div class="app" id="app-root">
+  <div class="header">
+    <h1>Experiful 打刻管理２</h1>
+    <p id="current-time">-</p>
+  </div>
+
+  <div id="main-view">
+    <!-- 選択フォーム -->
+    <div class="card">
+      <div class="section-label">店舗</div>
+      <select id="store" onchange="onStoreChange()">
+        <option value="">選択してください</option>
+        <option>東京銀座店</option>
+        <option>東京新宿店</option>
+        <option>東京池袋店</option>
+        <option>横浜駅前店</option>
+        <option>大阪梅田店</option>
+        <option>大阪難波店</option>
+        <option>上野公演部屋</option>
+        <option>横浜公演部屋</option>
+      </select>
+
+      <div class="section-label">スタッフ</div>
+      <select id="staff">
+        <option value="">選択してください</option>
+        <option>LEOMAX</option>
+        <option>SASA</option>
+        <option>わいわい</option>
+        <option>Kちゃん。</option>
+        <option>さくら</option>
+        <option>うえんつ</option>
+        <option>スパイシー</option>
+        <option>こまち</option>
+        <option>澪</option>
+        <option>晴雨*</option>
+        <option>将軍</option>
+        <option>まっき→</option>
+        <option>ねる</option>
+        <option>あお</option>
+        <option>ライチュウ</option>
+        <option>オータニ</option>
+        <option>あーる</option>
+        <option>かいちょー</option>
+        <option>ユエ</option>
+        <option>わさび</option>
+        <option>あち</option>
+        <option>二代目</option>
+      </select>
+
+      <div class="section-label">シフト区分</div>
+      <select id="shift-type" onchange="onShiftChange()">
+        <option value="">選択してください</option>
+        <option value="early">早番 11:20~17:00</option>
+        <option value="late">遅番 18:00~21:00または最終顧客10分後</option>
+        <option value="full">全日 11:20~21:00または最終顧客10分後</option>
+        <option value="gm">GM公演</option>
+      </select>
+
+      <!-- GM公演追加項目 -->
+      <div class="gm-block" id="gm-block">
+        <div class="section-label">公演作品</div>
+        <select id="gm-title">
+          <option value="">選択してください</option>
+          <option value="8CAMP" data-allowance="1000">8CAMP</option>
+          <option value="夏色漂流詩" data-allowance="500">夏色漂流詩</option>
+          <option value="夜明ケヨリモ向コウ側" data-allowance="500">夜明ケヨリモ向コウ側</option>
+          <option value="あなたの原罪" data-allowance="0">あなたの原罪</option>
+        </select>
+        <div class="section-label">時間帯</div>
+        <select id="gm-session">
+          <option value="">選択してください</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 出勤カード -->
+    <div class="card" id="clock-in-card">
+      <div class="section-label">出勤打刻</div>
+      <div id="in-result-box" class="hidden"></div>
+      <button class="btn btn-in" id="btn-in" onclick="clockIn()">出勤</button>
+    </div>
+
+    <!-- 退勤カード（出勤後に表示） -->
+    <div class="card hidden" id="clock-out-card">
+      <div class="section-label">退勤打刻</div>
+
+      <!-- 早番退勤（17:00固定） -->
+      <div id="early-checkout-wrap" class="hidden">
+        <div class="gm-notice">早番のシフト終了時刻は17:00です</div>
+        <button class="btn btn-out" onclick="clockOut()">退勤</button>
+      </div>
+
+      <!-- 通常退勤（遅番・全日） -->
+      <div id="checkout-wrap">
+        <select id="checkout-type" onchange="onCheckoutTypeChange()">
+          <option value="">退勤パターンを選択</option>
+          <option value="a">21:00退勤（最終顧客20:50以前）</option>
+          <option value="b">21:10〜23:00退勤（最終顧客時刻を入力）</option>
+          <option value="c">23:10退勤（最終顧客23:00以降）</option>
+        </select>
+        <div id="last-customer-block" class="hidden">
+          <div class="section-label">最終顧客退店時刻</div>
+          <input type="time" id="last-customer-time" min="20:51" max="22:59" onchange="validateLastCustomer()" />
+          <div class="notice-sm">10分後（10分単位切り上げ）がシフト終了時刻となります</div>
+        </div>
+        <button class="btn btn-out" onclick="clockOut()">退勤</button>
+      </div>
+
+      <!-- GM公演退勤 -->
+      <div id="gm-checkout-wrap" class="hidden">
+        <div class="gm-notice">GM公演のシフト終了時刻は公演スケジュールに準じます</div>
+        <button class="btn btn-out" onclick="clockOut()">退勤</button>
+      </div>
+
+      <div id="out-result-box" class="hidden" style="margin-top:12px"></div>
+      <button class="btn btn-send hidden" id="btn-send" onclick="sendData()" style="margin-top:12px">送信</button>
+      <div id="error-notice" class="hidden" style="font-size:13px;color:#c0392b;background:#fde8e8;padding:8px 12px;border-radius:8px;margin-top:8px;line-height:1.6;">エラーあり。エラー内容について別途報告すること</div>
+    </div>
+  </div>
+
+  <!-- 送信完了画面 -->
+  <div id="sent-view" class="hidden">
+    <div class="card">
+      <div class="sent-msg">
+        <div class="sent-icon">✓</div>
+        <div class="sent-title">送信しました</div>
+        <div>データを記録しました</div>
+      </div>
+      <button class="btn btn-send" onclick="resetAll()">次の打刻へ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // =====================
+  // IPアドレス取得（ログ記録用・失敗しても動作に影響しない）
+  // =====================
+  let clientIP = '不明';
+  try {
+    fetch('https://api.ipify.org?format=json')
+      .then(r => r.json())
+      .then(d => { clientIP = d.ip; })
+      .catch(() => { clientIP = '取得失敗'; });
+  } catch(e) {
+    clientIP = '取得失敗';
+  }
+  // =====================
+  // GM公演の店舗別時間帯
+  // =====================
+  const GM_SESSIONS = {
+    '大阪梅田店': [
+      { label: '夜 18:15〜22:45', val: '梅田夜', in: '18:15', out: '22:45' }
+    ],
+    '大阪難波店': [
+      { label: '夜 18:15〜22:45', val: '難波夜', in: '18:15', out: '22:45' }
+    ],
+    '上野公演部屋': [
+      { label: '昼 12:45〜17:15', val: '上野昼', in: '12:45', out: '17:15' },
+      { label: '夜 18:15〜22:45', val: '上野夜', in: '18:15', out: '22:45' }
+    ],
+    '横浜公演部屋': [
+      { label: '昼 10:15〜14:45', val: '横浜昼', in: '10:15', out: '14:45' },
+      { label: '夜 15:45〜20:15', val: '横浜夜', in: '15:45', out: '20:15' }
+    ]
+  };
+
+  // 打刻中のデータ
+  let currentEntry = null;
+
+  // =====================
+  // 時刻ユーティリティ
+  // =====================
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function nowStr() {
+    const n = new Date();
+    return pad(n.getHours()) + ':' + pad(n.getMinutes());
+  }
+  function toMins(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  // 時計更新
+  function updateClock() {
+    const n = new Date();
+    document.getElementById('current-time').textContent =
+      n.getFullYear() + '年' + (n.getMonth() + 1) + '月' + n.getDate() + '日 ' +
+      pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // =====================
+  // フォーム操作
+  // =====================
+  function onStoreChange() {
+    if (getVal('shift-type') === 'gm') updateGmSessions();
+  }
+
+  function updateGmSessions() {
+    const store = getVal('store');
+    const sel = document.getElementById('gm-session');
+    sel.innerHTML = '<option value="">選択してください</option>';
+    const sessions = GM_SESSIONS[store] || [];
+    if (!sessions.length) {
+      const o = document.createElement('option');
+      o.disabled = true;
+      o.textContent = 'この店舗のGM公演はありません';
+      sel.appendChild(o);
+    } else {
+      sessions.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.val;
+        o.dataset.in = s.in;
+        o.dataset.out = s.out;
+        o.textContent = store + ' ' + s.label;
+        sel.appendChild(o);
+      });
+    }
+  }
+
+  function onShiftChange() {
+    const v = getVal('shift-type');
+    document.getElementById('gm-block').style.display = (v === 'gm') ? 'block' : 'none';
+    const isGm    = v === 'gm';
+    const isEarly = v === 'early';
+    document.getElementById('early-checkout-wrap').classList.toggle('hidden', !isEarly);
+    document.getElementById('checkout-wrap').classList.toggle('hidden', isGm || isEarly);
+    document.getElementById('gm-checkout-wrap').classList.toggle('hidden', !isGm);
+    if (isGm) updateGmSessions();
+  }
+
+  function onCheckoutTypeChange() {
+    document.getElementById('last-customer-block').classList.toggle('hidden', getVal('checkout-type') !== 'b');
+  }
+
+  function validateLastCustomer() {
+    const val = getVal('last-customer-time');
+    if (!val) return;
+    if (toMins(val) < toMins('20:51')) {
+      alert('最終顧客退店時刻は20:51以降を入力してください');
+      document.getElementById('last-customer-time').value = '20:51';
+    } else if (toMins(val) > toMins('22:59')) {
+      alert('最終顧客退店時刻は22:59以前を入力してください');
+      document.getElementById('last-customer-time').value = '22:59';
+    }
+  }
+
+  function getVal(id) { return document.getElementById(id).value; }
+
+  function validateForm() {
+    if (!getVal('store') || !getVal('staff') || !getVal('shift-type')) {
+      alert('店舗・スタッフ・シフト区分を選択してください');
+      return false;
+    }
+    if (getVal('shift-type') === 'gm' && (!getVal('gm-title') || !getVal('gm-session'))) {
+      alert('公演作品と時間帯を選択してください');
+      return false;
+    }
+    return true;
+  }
+
+  function lockForm() {
+    ['store', 'staff', 'shift-type', 'gm-title', 'gm-session'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = true;
+    });
+  }
+
+  // =====================
+  // 出勤打刻
+  // =====================
+  function clockIn() {
+    if (!validateForm()) return;
+    const time = nowStr();
+    const shift = getVal('shift-type');
+    const store = getVal('store');
+    const staff = getVal('staff');
+    const wageInMap = { early: '11:20', late: '18:00', full: '11:20' };
+
+    const entry = {
+      staff, store, shift,
+      inTime: time,
+      wageIn: wageInMap[shift] || time,
+      outTime: null, wageOut: null,
+      lastCustomer: null, allowance: 0,
+      errors: []
+    };
+
+    if (shift === 'gm') {
+      const sel = document.getElementById('gm-session');
+      const opt = sel.options[sel.selectedIndex];
+      entry.wageIn  = opt.dataset.in;
+      entry.wageOut = opt.dataset.out;
+      entry.gmTitle = getVal('gm-title');
+      const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
+      entry.allowance = parseInt(tOpt.dataset.allowance) || 0;
+    }
+
+    // 遅刻チェック（GM公演含む全シフト）
+    if (toMins(time) > toMins(entry.wageIn)) {
+      entry.errors.push('出勤打刻時刻（' + time + '）がシフト開始時刻（' + entry.wageIn + '）より遅れています');
+    }
+
+    currentEntry = entry;
+    lockForm();
+
+    // 出勤結果を表示
+    const box = document.getElementById('in-result-box');
+    box.className = 'result-box';
+    let html = `
+      <div class="result-row"><span class="result-label">店舗</span><span class="result-val">${store}</span></div>
+      <div class="result-row"><span class="result-label">スタッフ</span><span class="result-val">${staff}</span></div>
+      <div class="result-row"><span class="result-label">シフト区分</span><span class="result-val">${labelShift(shift)}</span></div>
+      <div class="result-row"><span class="result-label">出勤打刻時刻</span><span class="result-val">${time}${entry.errors.length ? '<span class="error-badge">遅刻</span>' : ''}</span></div>
+      <div class="result-row"><span class="result-label">シフト開始時刻</span><span class="result-val">${entry.wageIn}</span></div>
+    `;
+    if (entry.errors.length) {
+      html += `<div class="error-msg">${entry.errors[0]}</div>`;
+    }
+    box.innerHTML = html;
+
+    document.getElementById('btn-in').classList.add('hidden');
+    document.getElementById('clock-out-card').classList.remove('hidden');
+  }
+
+  function labelShift(s) {
+    const m = { early: '早番', late: '遅番', full: '全日', gm: 'GM公演' };
+    return m[s] || s;
+  }
+
+  // =====================
+  // 退勤打刻
+  // =====================
+  function calcWageOut(type, lastTime) {
+    if (type === 'a') return '21:00';
+    if (type === 'c') return '23:10';
+    if (type === 'b' && lastTime) {
+      const [h, m] = lastTime.split(':').map(Number);
+      let total = h * 60 + m + 10;
+      const rem = total % 10;
+      if (rem > 0) total += 10 - rem;
+      if (total >= 23 * 60 + 10) return '23:10';
+      return pad(Math.floor(total / 60)) + ':' + pad(total % 60);
+    }
+    return null;
+  }
+
+  function calcWage(wageIn, wageOut, wage, allowance, shift) {
+    let mins = toMins(wageOut) - toMins(wageIn);
+    if (mins <= 0) return { normal: 0, late: 0, total: 0, workMins: 0 };
+    // 全日シフトは17:00〜18:00の1時間（60分）を休憩として引く
+    const breakMins = (shift === 'full') ? 60 : 0;
+    const workMins = mins - breakMins;
+    const midnight = 22 * 60;
+    const outMins = toMins(wageOut);
+    const inMins  = toMins(wageIn);
+    // 深夜時間（22時以降）
+    const lateMins = outMins > midnight ? outMins - Math.max(inMins, midnight) : 0;
+    // 時間給：全労働時間 × 時給
+    const normalPay = Math.round(workMins / 60 * wage);
+    // 深夜割増手当：22時以降の時間 × 時給 × 0.25（25%部分のみ）
+    const latePay = Math.round(lateMins / 60 * wage * 0.25);
+    return { normal: normalPay, late: latePay, total: normalPay + latePay + allowance, workMins, lateMins };
+  }
+
+  function clockOut() {
+    if (!currentEntry) { alert('先に出勤打刻をしてください'); return; }
+    const time  = nowStr();
+    const shift = currentEntry.shift;
+    let wageOut, lastCustomer = null;
+    const outErrors = [];
+
+    if (shift === 'gm') {
+      wageOut = currentEntry.wageOut;
+    } else if (shift === 'early') {
+      wageOut = '17:00';
+      if (toMins(time) < toMins('17:00')) {
+        outErrors.push('退勤打刻時刻（' + time + '）がシフト終了時刻（17:00）より早いです');
+      }
+    } else {
+      const type = getVal('checkout-type');
+      if (!type) { alert('退勤パターンを選択してください'); return; }
+      if (type === 'b') {
+        lastCustomer = getVal('last-customer-time');
+        if (!lastCustomer) { alert('最終顧客退店時刻を入力してください'); return; }
+        if (toMins(lastCustomer) < toMins('20:51') || toMins(lastCustomer) > toMins('22:59')) {
+          alert('最終顧客退店時刻は20:51〜22:59の範囲で入力してください');
+          return;
+        }
+      }
+      wageOut = calcWageOut(type, lastCustomer);
+
+      // 退勤エラーチェック
+      if (type === 'a' && toMins(time) < toMins('21:00')) {
+        outErrors.push('退勤打刻時刻（' + time + '）がシフト終了時刻（21:00）より早いです');
+      }
+      if (type === 'b' && lastCustomer && toMins(time) < toMins(lastCustomer)) {
+        outErrors.push('退勤打刻時刻（' + time + '）が最終顧客退店時刻（' + lastCustomer + '）より早いです');
+      }
+      if (type === 'c' && toMins(time) < toMins('23:00')) {
+        outErrors.push('退勤打刻時刻（' + time + '）が最終顧客退店時刻（23:00）より早いです');
+      }
+    }
+
+    currentEntry.outTime      = time;
+    currentEntry.wageOut      = wageOut;
+    currentEntry.lastCustomer = lastCustomer;
+
+    // 出勤エラー（遅刻）だけ残して退勤エラーは毎回上書き
+    const inErrors = currentEntry.errors.filter(e => e.includes('シフト開始時刻'));
+    currentEntry.errors = [...inErrors, ...outErrors];
+
+    const pay = calcWage(currentEntry.wageIn, wageOut, 1226, currentEntry.allowance, currentEntry.shift);
+    currentEntry.calcPay = pay;
+
+    // 退勤結果を表示
+    const box = document.getElementById('out-result-box');
+    box.className = 'result-box';
+    let html = '';
+    if (lastCustomer) {
+      html += `<div class="result-row"><span class="result-label">最終顧客退店</span><span class="result-val">${lastCustomer}</span></div>`;
+    }
+    html += `
+      <div class="result-row"><span class="result-label">退勤打刻時刻</span><span class="result-val">${time}${outErrors.length ? '<span class="error-badge">確認</span>' : ''}</span></div>
+      <div class="result-row"><span class="result-label">シフト終了時刻</span><span class="result-val">${wageOut}</span></div>
+    `;
+    if (outErrors.length) {
+      html += `<div class="error-msg">${outErrors[0]}</div>`;
+    }
+    box.innerHTML = html;
+    box.classList.remove('hidden');
+    document.getElementById('btn-send').classList.remove('hidden');
+    // エラーがある場合は注意メッセージを表示
+    const allErrors = currentEntry.errors || [];
+    const errorCount = allErrors.length;
+    const notice = document.getElementById('error-notice');
+    if (errorCount > 0) {
+      notice.textContent = '⚠️【エラー' + errorCount + '件】エラー内容について別途報告すること';
+      notice.classList.remove('hidden');
+    } else {
+      notice.classList.add('hidden');
+    }
+  }
+
+  // =====================
+  // 交通費データ
+  // 列順：東京銀座店, 東京新宿店, 東京池袋店, 横浜駅前店, 大阪梅田店, 大阪難波店, 上野公演部屋, 横浜公演部屋
+  // =====================
+  const TRANSPORT = {
+    // スタッフ名: { home: [所属店舗], fare: { 店舗名: 実費 } }
+    'うえんつ':  { home: ['東京銀座店','上野公演部屋'], fare: {'東京銀座店':440,'東京新宿店':720,'東京池袋店':720,'横浜駅前店':1260,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':440,'横浜公演部屋':1260} },
+    'スパイシー': { home: ['横浜駅前店','横浜公演部屋'], fare: {'東京銀座店':2240,'東京新宿店':1120,'東京池袋店':1120,'横浜駅前店':740,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':2240,'横浜公演部屋':740} },
+    'こまち':    { home: ['東京新宿店'], fare: {'東京銀座店':920,'東京新宿店':800,'東京池袋店':800,'横浜駅前店':1040,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':920,'横浜公演部屋':1040} },
+    'さくら':    { home: ['横浜駅前店','横浜公演部屋'], fare: {'東京銀座店':1740,'東京新宿店':1780,'東京池袋店':1780,'横浜駅前店':600,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':1740,'横浜公演部屋':600} },
+    '澪':        { home: ['東京新宿店'], fare: {'東京銀座店':2200,'東京新宿店':2480,'東京池袋店':0,'横浜駅前店':3240,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':2200,'横浜公演部屋':3240} },
+    '晴雨*':     { home: ['東京銀座店','東京新宿店','横浜駅前店'], fare: {'東京銀座店':436,'東京新宿店':396,'東京池袋店':396,'横浜駅前店':406,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':436,'横浜公演部屋':406} },
+    '将軍':      { home: ['東京銀座店'], fare: {'東京銀座店':495,'東京新宿店':460,'東京池袋店':460,'横浜駅前店':735,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':495,'横浜公演部屋':735} },
+    'LEOMAX':    { home: [], fare: {} },
+    'SASA':      { home: [], fare: {} },
+    'わいわい':  { home: [], fare: {} },
+    'Kちゃん。': { home: ['大阪梅田店','大阪難波店'], fare: {} },
+    'まっき→':  { home: ['大阪梅田店','大阪難波店'], fare: {} },
+    'ねる':      { home: ['大阪梅田店'], fare: {} },
+    'あお':      { home: ['大阪梅田店'], fare: {} },
+    'ライチュウ':{ home: ['東京池袋店'], fare: {} },
+    'オータニ':  { home: ['東京池袋店'], fare: {} },
+    'あーる':    { home: ['東京池袋店'], fare: {} },
+    'かいちょー':{ home: ['東京池袋店'], fare: {} },
+    'ユエ':      { home: ['東京銀座店'], fare: {} },
+    'わさび':    { home: ['東京銀座店'], fare: {} },
+  };
+
+  function calcTransport(staff, store) {
+    const data = TRANSPORT[staff];
+    if (!data) return 0;
+    const fare = data.fare[store] || 0;
+    if (fare === 0) return 0;
+    const isHome = data.home.includes(store);
+    if (isHome) {
+      // 所属店舗：実費 or 500円の安い方
+      return Math.min(fare, 500);
+    } else {
+      // ヘルプ：実費全額
+      return fare;
+    }
+  }
+
+  // =====================
+  // 送信（Google Sheets連携）
+  // =====================
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwahdp28GbLjbSAgPzKoDB1WVIkgmk8MOyy_BEz_h1hgNs_G-JdicIfvBXi2hrb22UC/exec';
+
+  function sendData() {
+    if (!currentEntry) return;
+
+    const btn = document.getElementById('btn-send');
+    btn.textContent = '確認中...';
+    btn.disabled = true;
+
+    const transport = calcTransport(currentEntry.staff, currentEntry.store);
+    const totalWithTransport = (currentEntry.calcPay ? currentEntry.calcPay.total : 0) + transport;
+
+    const payload = {
+      staff:      currentEntry.staff,
+      store:      currentEntry.store,
+      shiftLabel: labelShift(currentEntry.shift),
+      inTime:     currentEntry.inTime,
+      wageIn:     currentEntry.wageIn,
+      outTime:    currentEntry.outTime,
+      wageOut:    currentEntry.wageOut,
+      lastCustomer: currentEntry.lastCustomer,
+      gmTitle:    currentEntry.gmTitle || '',
+      hourlyWage: 1226,
+      allowance:  currentEntry.allowance || 0,
+      calcPay:    currentEntry.calcPay,
+      workMins:   currentEntry.calcPay ? currentEntry.calcPay.workMins : 0,
+      lateMins:   currentEntry.calcPay ? currentEntry.calcPay.lateMins : 0,
+      transport:  transport,
+      totalWithTransport: totalWithTransport,
+      multi:      true,
+      clientIP:   clientIP,
+      errors:     currentEntry.errors
+    };
+
+    // まず当日の2回打刻チェック
+    const checkURL = GAS_URL + '?action=check&staff=' + encodeURIComponent(currentEntry.staff);
+    fetch(checkURL)
+      .then(r => r.json())
+      .then(result => {
+        if (result.exists) {
+          const ok = confirm('本日すでに「' + currentEntry.staff + '」の打刻記録があります。\n2オペですか？\nOKなら送信、キャンセルなら中止します。');
+          if (!ok) {
+            btn.textContent = '送信';
+            btn.disabled = false;
+            return;
+          }
+        }
+        // 送信実行
+        postData(payload, btn);
+      })
+      .catch(() => {
+        // チェック失敗時はそのまま送信
+        postData(payload, btn);
+      });
+  }
+
+  function postData(payload, btn) {
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(() => {
+      document.getElementById('main-view').classList.add('hidden');
+      document.getElementById('sent-view').classList.remove('hidden');
+    })
+    .catch(() => {
+      alert('送信に失敗しました。ネットワークを確認してください。');
+      btn.textContent = '送信';
+      btn.disabled = false;
+    });
+  }
+
+  // =====================
+  // リセット
+  // =====================
+  function resetAll() {
+    location.reload();
+  }
+</script>
+</body>
+</html>
