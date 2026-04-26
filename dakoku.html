@@ -571,26 +571,8 @@
       errors:     currentEntry.errors
     };
 
-    // まず当日の2回打刻チェック
-    const checkURL = GAS_URL + '?action=check&staff=' + encodeURIComponent(currentEntry.staff);
-    fetch(checkURL)
-      .then(r => r.json())
-      .then(result => {
-        if (result.exists) {
-          const ok = confirm('本日すでに「' + currentEntry.staff + '」の打刻記録があります。\n2オペですか？\nOKなら送信、キャンセルなら中止します。');
-          if (!ok) {
-            btn.textContent = '送信';
-            btn.disabled = false;
-            return;
-          }
-        }
-        // 送信実行
-        postData(payload, btn);
-      })
-      .catch(() => {
-        // チェック失敗時はそのまま送信
-        postData(payload, btn);
-      });
+    // 直接送信
+    postData(payload, btn);
   }
 
   function postData(payload, btn) {
