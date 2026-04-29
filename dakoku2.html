@@ -78,22 +78,22 @@
         <option>さくら</option>
         <option>うえんつ</option>
         <option>スパイシー</option>
-        <option>こよみ</option>
         <option>こまち</option>
-        <option>澪</option>
         <option>晴雨*</option>
         <option>将軍</option>
         <option>まっき→</option>
         <option>ねる</option>
         <option>あお</option>
+        <option>あーる</option>
         <option>ライチュウ</option>
         <option>オータニ</option>
-        <option>あーる</option>
         <option>かいちょー</option>
         <option>ユエ</option>
-        <option>わさび</option>
         <option>あち</option>
+        <option>わさび</option>
         <option>二代目</option>
+        <option>澪</option>
+        <option>こよみ</option>
       </select>
 
       <div class="section-label">シフト区分</div>
@@ -460,7 +460,8 @@
     const inErrors = currentEntry.errors.filter(e => e.includes('シフト開始時刻'));
     currentEntry.errors = [...inErrors, ...outErrors];
 
-    const pay = calcWage(currentEntry.wageIn, wageOut, 1226, currentEntry.allowance, currentEntry.shift);
+    const wage = STAFF_WAGE[currentEntry.staff] || 1226;
+    const pay = calcWage(currentEntry.wageIn, wageOut, wage, currentEntry.allowance, currentEntry.shift);
     currentEntry.calcPay = pay;
 
     // 退勤結果を表示
@@ -493,31 +494,17 @@
   }
 
   // =====================
-  // 交通費データ
-  // 列順：東京銀座店, 東京新宿店, 東京池袋店, 横浜駅前店, 大阪梅田店, 大阪難波店, 上野公演部屋, 横浜公演部屋
+  // 交通費データ・時給データ
   // =====================
-  const TRANSPORT = {
-    // スタッフ名: { home: [所属店舗], fare: { 店舗名: 実費 } }
-    'うえんつ':  { home: ['東京銀座店','上野公演部屋'], fare: {'東京銀座店':440,'東京新宿店':720,'東京池袋店':720,'横浜駅前店':1260,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':440,'横浜公演部屋':1260} },
-    'スパイシー': { home: ['横浜駅前店','横浜公演部屋'], fare: {'東京銀座店':2240,'東京新宿店':1120,'東京池袋店':1120,'横浜駅前店':740,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':2240,'横浜公演部屋':740} },
-    'こまち':    { home: ['東京新宿店'], fare: {'東京銀座店':920,'東京新宿店':800,'東京池袋店':800,'横浜駅前店':1040,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':920,'横浜公演部屋':1040} },
-    'さくら':    { home: ['横浜駅前店','横浜公演部屋'], fare: {'東京銀座店':1740,'東京新宿店':1780,'東京池袋店':1780,'横浜駅前店':600,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':1740,'横浜公演部屋':600} },
-    '澪':        { home: ['東京新宿店'], fare: {'東京銀座店':2200,'東京新宿店':2480,'東京池袋店':0,'横浜駅前店':3240,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':2200,'横浜公演部屋':3240} },
-    '晴雨*':     { home: ['東京銀座店','東京新宿店','横浜駅前店'], fare: {'東京銀座店':436,'東京新宿店':396,'東京池袋店':396,'横浜駅前店':406,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':436,'横浜公演部屋':406} },
-    '将軍':      { home: ['東京銀座店'], fare: {'東京銀座店':495,'東京新宿店':460,'東京池袋店':460,'横浜駅前店':735,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':495,'横浜公演部屋':735} },
-    'LEOMAX':    { home: [], fare: {} },
-    'SASA':      { home: [], fare: {} },
-    'わいわい':  { home: [], fare: {} },
-    'Kちゃん。': { home: ['大阪梅田店','大阪難波店'], fare: {} },
-    'まっき→':  { home: ['大阪梅田店','大阪難波店'], fare: {} },
-    'ねる':      { home: ['大阪梅田店'], fare: {} },
-    'あお':      { home: ['大阪梅田店'], fare: {} },
-    'ライチュウ':{ home: ['東京池袋店'], fare: {} },
-    'オータニ':  { home: ['東京池袋店'], fare: {} },
-    'あーる':    { home: ['東京池袋店'], fare: {} },
-    'かいちょー':{ home: ['東京池袋店'], fare: {} },
-    'ユエ':      { home: ['東京銀座店'], fare: {} },
-    'わさび':    { home: ['東京銀座店'], fare: {} },
+  const STAFF_WAGE = {
+    'LEOMAX': 0, 'SASA': 0, 'わいわい': 0,
+    'Kちゃん。': 1177, 'さくら': 1226, 'うえんつ': 1226,
+    'スパイシー': 1226, 'こまち': 1226, '晴雨*': 1226,
+    '将軍': 1226, 'まっき→': 1177, 'ねる': 1177,
+    'あお': 1177, 'あーる': 1226, 'ライチュウ': 1226,
+    'オータニ': 1226, 'かいちょー': 1226, 'ユエ': 1226,
+    'あち': 1177, 'わさび': 1226, '二代目': 1226,
+    '澪': 1226, 'こよみ': 1226,
   };
 
   function calcTransport(staff, store) {
@@ -560,7 +547,7 @@
       wageOut:    currentEntry.wageOut,
       lastCustomer: currentEntry.lastCustomer,
       gmTitle:    currentEntry.gmTitle || '',
-      hourlyWage: 1226,
+      hourlyWage: STAFF_WAGE[currentEntry.staff] || 1226,
       allowance:  currentEntry.allowance || 0,
       calcPay:    currentEntry.calcPay,
       workMins:   currentEntry.calcPay ? currentEntry.calcPay.workMins : 0,
