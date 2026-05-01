@@ -55,6 +55,13 @@
   <div id="main-view">
     <!-- 選択フォーム -->
     <div class="card">
+      <div class="section-label">打刻種別</div>
+      <select id="clock-type" onchange="onClockTypeChange()">
+        <option value="">選択してください</option>
+        <option value="in">出勤</option>
+        <option value="out">退勤</option>
+      </select>
+
       <div class="section-label">店舗</div>
       <select id="store" onchange="onStoreChange()">
         <option value="">選択してください</option>
@@ -123,13 +130,13 @@
     </div>
 
     <!-- 出勤カード -->
-    <div class="card" id="clock-in-card">
+    <div class="card hidden" id="clock-in-card">
       <div class="section-label">出勤打刻</div>
       <div id="in-result-box" class="hidden"></div>
       <button class="btn btn-in" id="btn-in" onclick="clockIn()">出勤</button>
     </div>
 
-    <!-- 退勤カード（出勤後に表示） -->
+    <!-- 退勤カード -->
     <div class="card hidden" id="clock-out-card">
       <div class="section-label">退勤打刻</div>
 
@@ -140,7 +147,7 @@
       </div>
 
       <!-- 通常退勤（遅番・全日） -->
-      <div id="checkout-wrap">
+      <div id="checkout-wrap" class="hidden">
         <select id="checkout-type" onchange="onCheckoutTypeChange()">
           <option value="">退勤パターンを選択</option>
           <option value="a">21:00退勤（最終顧客20:50以前）</option>
@@ -162,8 +169,7 @@
       </div>
 
       <div id="out-result-box" class="hidden" style="margin-top:12px"></div>
-      <button class="btn btn-send hidden" id="btn-send" onclick="sendData()" style="margin-top:12px">送信</button>
-      <div id="error-notice" class="hidden" style="font-size:13px;color:#c0392b;background:#fde8e8;padding:8px 12px;border-radius:8px;margin-top:8px;line-height:1.6;">エラーあり。エラー内容について別途報告すること</div>
+      <div id="error-notice" class="hidden" style="font-size:13px;color:#c0392b;background:#fde8e8;padding:8px 12px;border-radius:8px;margin-top:8px;line-height:1.6;"></div>
     </div>
   </div>
 
@@ -172,7 +178,7 @@
     <div class="card">
       <div class="sent-msg">
         <div class="sent-icon">✓</div>
-        <div class="sent-title">送信しました</div>
+        <div class="sent-title" id="sent-title">送信しました</div>
         <div>データを記録しました</div>
       </div>
       <button class="btn btn-send" onclick="resetAll()">次の打刻へ</button>
@@ -242,6 +248,13 @@
   // =====================
   // フォーム操作
   // =====================
+  function onClockTypeChange() {
+    const type = getVal('clock-type');
+    document.getElementById('clock-in-card').classList.toggle('hidden', type !== 'in');
+    document.getElementById('clock-out-card').classList.toggle('hidden', type !== 'out');
+    if (type === 'out') onShiftChange(); // 退勤選択時にシフト区分に応じた表示更新
+  }
+
   function onStoreChange() {
     if (getVal('shift-type') === 'gm') updateGmSessions();
   }
@@ -273,9 +286,13 @@
     document.getElementById('gm-block').style.display = (v === 'gm') ? 'block' : 'none';
     const isGm    = v === 'gm';
     const isEarly = v === 'early';
-    document.getElementById('early-checkout-wrap').classList.toggle('hidden', !isEarly);
-    document.getElementById('checkout-wrap').classList.toggle('hidden', isGm || isEarly);
-    document.getElementById('gm-checkout-wrap').classList.toggle('hidden', !isGm);
+    const clockType = getVal('clock-type');
+
+    if (clockType === 'out') {
+      document.getElementById('early-checkout-wrap').classList.toggle('hidden', !isEarly);
+      document.getElementById('checkout-wrap').classList.toggle('hidden', isGm || isEarly);
+      document.getElementById('gm-checkout-wrap').classList.toggle('hidden', !isGm);
+    }
     if (isGm) updateGmSessions();
   }
 
@@ -298,6 +315,10 @@
   function getVal(id) { return document.getElementById(id).value; }
 
   function validateForm() {
+    if (!getVal('clock-type')) {
+      alert('打刻種別を選択してください');
+      return false;
+    }
     if (!getVal('store') || !getVal('staff') || !getVal('shift-type')) {
       alert('店舗・スタッフ・シフト区分を選択してください');
       return false;
@@ -346,7 +367,7 @@
       entry.allowance = parseInt(tOpt.dataset.allowance) || 0;
     }
 
-    // 遅刻チェック（GM公演含む全シフト）
+    // 遅刻チェック
     if (toMins(time) > toMins(entry.wageIn)) {
       entry.errors.push('出勤打刻時刻（' + time + '）がシフト開始時刻（' + entry.wageIn + '）より遅れています');
     }
@@ -369,8 +390,51 @@
     }
     box.innerHTML = html;
 
-    document.getElementById('btn-in').classList.add('hidden');
-    document.getElementById('clock-out-card').classList.remove('hidden');
+    // 出勤を即座に送信
+    const btnIn = document.getElementById('btn-in');
+    btnIn.textContent = '送信中...';
+    btnIn.disabled = true;
+
+    const inPayload = {
+      type: 'clockin',
+      staff, store,
+      shiftLabel: labelShift(shift),
+      gmTitle: entry.gmTitle || '',
+      inTime: time,
+      wageIn: entry.wageIn,
+      wageOut: entry.wageOut || '',
+      hourlyWage: STAFF_WAGE[staff] || 1226,
+      allowance: entry.allowance || 0,
+      inErrors: entry.errors,
+      multi: true,
+      clientIP,
+    };
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inPayload)
+    })
+    .then(() => {
+      const errors = entry.errors || [];
+      const sentNotice = document.getElementById('sent-error-notice');
+      if (errors.length > 0) {
+        sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' +
+          errors.map(e => '・' + e).join('<br>');
+        sentNotice.classList.remove('hidden');
+      } else {
+        sentNotice.classList.add('hidden');
+      }
+      document.getElementById('sent-title').textContent = '出勤を記録しました（2人体制）';
+      document.getElementById('main-view').classList.add('hidden');
+      document.getElementById('sent-view').classList.remove('hidden');
+    })
+    .catch(() => {
+      alert('出勤送信に失敗しました。ネットワークを確認してください。');
+      btnIn.textContent = '出勤';
+      btnIn.disabled = false;
+    });
   }
 
   function labelShift(s) {
@@ -414,14 +478,28 @@
   }
 
   function clockOut() {
-    if (!currentEntry) { alert('先に出勤打刻をしてください'); return; }
+    if (!validateForm()) return;
     const time  = nowStr();
-    const shift = currentEntry.shift;
+    const shift = getVal('shift-type');
+    const store = getVal('store');
+    const staff = getVal('staff');
+    const wageInMap = { early: '11:20', late: '18:00', full: '11:20' };
+    const wageIn = wageInMap[shift] || time;
+
     let wageOut, lastCustomer = null;
     const outErrors = [];
 
+    // GM公演のシフト開始・終了時刻を取得
+    let gmTitle = '', allowance = 0, gmWageIn = wageIn, gmWageOut = '';
     if (shift === 'gm') {
-      wageOut = currentEntry.wageOut;
+      const sel = document.getElementById('gm-session');
+      const opt = sel.options[sel.selectedIndex];
+      gmWageIn  = opt.dataset.in;
+      gmWageOut = opt.dataset.out;
+      wageOut   = gmWageOut;
+      gmTitle   = getVal('gm-title');
+      const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
+      allowance = parseInt(tOpt.dataset.allowance) || 0;
     } else if (shift === 'early') {
       wageOut = '17:00';
       if (toMins(time) < toMins('17:00')) {
@@ -439,8 +517,6 @@
         }
       }
       wageOut = calcWageOut(type, lastCustomer);
-
-      // 退勤エラーチェック
       if (type === 'a' && toMins(time) < toMins('21:00')) {
         outErrors.push('退勤打刻時刻（' + time + '）がシフト終了時刻（21:00）より早いです');
       }
@@ -452,17 +528,19 @@
       }
     }
 
-    currentEntry.outTime      = time;
-    currentEntry.wageOut      = wageOut;
-    currentEntry.lastCustomer = lastCustomer;
+    const finalWageIn = (shift === 'gm') ? gmWageIn : wageIn;
+    const wage = STAFF_WAGE[staff] || 1226;
+    const pay = calcWage(finalWageIn, wageOut, wage, allowance, shift);
 
-    // 出勤エラー（遅刻）だけ残して退勤エラーは毎回上書き
-    const inErrors = currentEntry.errors.filter(e => e.includes('シフト開始時刻'));
-    currentEntry.errors = [...inErrors, ...outErrors];
-
-    const wage = STAFF_WAGE[currentEntry.staff] || 1226;
-    const pay = calcWage(currentEntry.wageIn, wageOut, wage, currentEntry.allowance, currentEntry.shift);
-    currentEntry.calcPay = pay;
+    // currentEntryを退勤用に構築
+    currentEntry = {
+      staff, store, shift,
+      inTime: '', wageIn: finalWageIn,
+      outTime: time, wageOut,
+      lastCustomer, allowance,
+      gmTitle, calcPay: pay,
+      errors: outErrors
+    };
 
     // 退勤結果を表示
     const box = document.getElementById('out-result-box');
@@ -480,17 +558,9 @@
     }
     box.innerHTML = html;
     box.classList.remove('hidden');
-    document.getElementById('btn-send').classList.remove('hidden');
-    // エラーがある場合は注意メッセージを表示
-    const allErrors = currentEntry.errors || [];
-    const errorCount = allErrors.length;
-    const notice = document.getElementById('error-notice');
-    if (errorCount > 0) {
-      notice.textContent = '⚠️【エラー' + errorCount + '件】エラー内容について別途報告すること';
-      notice.classList.remove('hidden');
-    } else {
-      notice.classList.add('hidden');
-    }
+
+    // 退勤を即座に送信
+    sendData();
   }
 
   // =====================
@@ -525,7 +595,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbz64173T2gPjrvKTpV1S1yk475IwiISLfp19C4x5KR0Lp7uimEirDaw4JYirsc9mKUb/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyqKIWI09ZxOdbt2rzvE_zFvVd8EjXZXkhDg4s9YGes4cXyjP_myQFByVUcuGSbU-0O/exec';
 
   function sendData() {
     if (!currentEntry) return;
