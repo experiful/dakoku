@@ -418,10 +418,11 @@
       body: JSON.stringify(inPayload)
     })
     .then(() => {
-      const errorCount = entry.errors ? entry.errors.length : 0;
+      const errors = entry.errors || [];
       const sentNotice = document.getElementById('sent-error-notice');
-      if (errorCount > 0) {
-        sentNotice.textContent = '⚠️【エラー' + errorCount + '件】エラー内容について別途報告すること';
+      if (errors.length > 0) {
+        sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' +
+          errors.map(e => '・' + e).join('<br>');
         sentNotice.classList.remove('hidden');
       } else {
         sentNotice.classList.add('hidden');
@@ -623,7 +624,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzBUP4MVMdfpSnV9ozkp8dnc-93hWALvutKofXYrjjluEakkEg8jJ57Bb4vmzneEQmm/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyqKIWI09ZxOdbt2rzvE_zFvVd8EjXZXkhDg4s9YGes4cXyjP_myQFByVUcuGSbU-0O/exec';
 
   function sendData() {
     if (!currentEntry) return;
@@ -696,10 +697,11 @@
       body: JSON.stringify(payload)
     })
     .then(() => {
-      const errorCount = currentEntry.errors ? currentEntry.errors.length : 0;
+      const errors = currentEntry.errors || [];
       const sentNotice = document.getElementById('sent-error-notice');
-      if (errorCount > 0) {
-        sentNotice.textContent = '⚠️【エラー' + errorCount + '件】エラー内容について別途報告すること';
+      if (errors.length > 0) {
+        sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' +
+          errors.map(e => '・' + e).join('<br>');
         sentNotice.classList.remove('hidden');
       } else {
         sentNotice.classList.add('hidden');
