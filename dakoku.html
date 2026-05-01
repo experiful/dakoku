@@ -132,7 +132,6 @@
     <!-- 出勤カード -->
     <div class="card hidden" id="clock-in-card">
       <div class="section-label">出勤打刻</div>
-      <div id="in-result-box" class="hidden"></div>
       <button class="btn btn-in" id="btn-in" onclick="clockIn()">出勤</button>
     </div>
 
@@ -167,9 +166,6 @@
         <div class="gm-notice">GM公演のシフト終了時刻は公演スケジュールに準じます</div>
         <button class="btn btn-out" onclick="clockOut()">退勤</button>
       </div>
-
-      <div id="out-result-box" class="hidden" style="margin-top:12px"></div>
-      <div id="error-notice" class="hidden" style="font-size:13px;color:#c0392b;background:#fde8e8;padding:8px 12px;border-radius:8px;margin-top:8px;line-height:1.6;"></div>
     </div>
   </div>
 
@@ -181,7 +177,8 @@
         <div class="sent-title" id="sent-title">送信しました</div>
         <div>データを記録しました</div>
       </div>
-      <div id="sent-error-notice" class="hidden" style="font-size:13px;color:#c0392b;background:#fde8e8;padding:8px 12px;border-radius:8px;margin:12px 0;line-height:1.6;text-align:left;"></div>
+      <div id="sent-detail" class="hidden" style="background:#f5f5f0;border-radius:8px;padding:1rem;margin:12px 0;font-size:13px;"></div>
+      <div id="sent-error-notice" class="hidden" style="font-size:13px;color:#c0392b;background:#fde8e8;padding:8px 12px;border-radius:8px;margin-bottom:12px;line-height:1.6;text-align:left;"></div>
       <button class="btn btn-send" onclick="resetAll()">次の打刻へ</button>
     </div>
   </div>
@@ -355,7 +352,7 @@
       wageIn: wageInMap[shift] || time,
       outTime: null, wageOut: null,
       lastCustomer: null, allowance: 0,
-      errors: []
+      gmTitle: '', errors: []
     };
 
     if (shift === 'gm') {
@@ -374,68 +371,37 @@
     }
 
     currentEntry = entry;
+
+    // sessionStorageに保存（ページリロード対策）
+    try { sessionStorage.setItem('dakokuEntry', JSON.stringify(entry)); } catch(e) {}
+
     lockForm();
 
-    // 出勤結果を表示
-    const box = document.getElementById('in-result-box');
-    box.className = 'result-box';
-    let html = `
-      <div class="result-row"><span class="result-label">店舗</span><span class="result-val">${store}</span></div>
-      <div class="result-row"><span class="result-label">スタッフ</span><span class="result-val">${staff}</span></div>
-      <div class="result-row"><span class="result-label">シフト区分</span><span class="result-val">${labelShift(shift)}</span></div>
-      <div class="result-row"><span class="result-label">出勤打刻時刻</span><span class="result-val">${time}${entry.errors.length ? '<span class="error-badge">遅刻</span>' : ''}</span></div>
-      <div class="result-row"><span class="result-label">シフト開始時刻</span><span class="result-val">${entry.wageIn}</span></div>
+    // 出勤完了画面へ（GAS送信なし）
+    const errors = entry.errors || [];
+    // 詳細情報
+    const detail = document.getElementById('sent-detail');
+    let detailHtml = `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">店舗</span><span style="font-weight:500">${store}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">スタッフ</span><span style="font-weight:500">${staff}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">シフト区分</span><span style="font-weight:500">${labelShift(shift)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">出勤打刻時刻</span><span style="font-weight:500">${time}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:#888">シフト開始時刻</span><span style="font-weight:500">${entry.wageIn}</span></div>
     `;
-    if (entry.errors.length) {
-      html += `<div class="error-msg">${entry.errors[0]}</div>`;
+    detail.innerHTML = detailHtml;
+    detail.classList.remove('hidden');
+
+    const sentNotice = document.getElementById('sent-error-notice');
+    if (errors.length > 0) {
+      sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' +
+        errors.map(e => '・' + e).join('<br>');
+      sentNotice.classList.remove('hidden');
+    } else {
+      sentNotice.classList.add('hidden');
     }
-    box.innerHTML = html;
-
-    // 出勤を即座に送信
-    const btnIn = document.getElementById('btn-in');
-    btnIn.textContent = '送信中...';
-    btnIn.disabled = true;
-
-    const inPayload = {
-      type: 'clockin',
-      staff, store,
-      shiftLabel: labelShift(shift),
-      gmTitle: entry.gmTitle || '',
-      inTime: time,
-      wageIn: entry.wageIn,
-      wageOut: entry.wageOut || '',
-      hourlyWage: STAFF_WAGE[staff] || 1226,
-      allowance: entry.allowance || 0,
-      inErrors: entry.errors,
-      multi: false,
-      clientIP,
-    };
-
-    fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(inPayload)
-    })
-    .then(() => {
-      const errors = entry.errors || [];
-      const sentNotice = document.getElementById('sent-error-notice');
-      if (errors.length > 0) {
-        sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' +
-          errors.map(e => '・' + e).join('<br>');
-        sentNotice.classList.remove('hidden');
-      } else {
-        sentNotice.classList.add('hidden');
-      }
-      document.getElementById('sent-title').textContent = '出勤を記録しました';
-      document.getElementById('main-view').classList.add('hidden');
-      document.getElementById('sent-view').classList.remove('hidden');
-    })
-    .catch(() => {
-      alert('出勤送信に失敗しました。ネットワークを確認してください。');
-      btnIn.textContent = '出勤';
-      btnIn.disabled = false;
-    });
+    document.getElementById('sent-title').textContent = '出勤を記録しました';
+    document.getElementById('main-view').classList.add('hidden');
+    document.getElementById('sent-view').classList.remove('hidden');
   }
 
   function labelShift(s) {
@@ -543,25 +509,12 @@
       errors: outErrors
     };
 
-    // 退勤結果を表示
-    const box = document.getElementById('out-result-box');
-    box.className = 'result-box';
-    let html = '';
-    if (lastCustomer) {
-      html += `<div class="result-row"><span class="result-label">最終顧客退店</span><span class="result-val">${lastCustomer}</span></div>`;
-    }
-    html += `
-      <div class="result-row"><span class="result-label">退勤打刻時刻</span><span class="result-val">${time}${outErrors.length ? '<span class="error-badge">確認</span>' : ''}</span></div>
-      <div class="result-row"><span class="result-label">シフト終了時刻</span><span class="result-val">${wageOut}</span></div>
-    `;
-    if (outErrors.length) {
-      html += `<div class="error-msg">${outErrors[0]}</div>`;
-    }
-    box.innerHTML = html;
-    box.classList.remove('hidden');
+    // 退勤ボタンを「送信中...」に変更
+    const btns = document.querySelectorAll('.btn-out');
+    btns.forEach(b => { b.textContent = '送信中...'; b.disabled = true; });
 
     // 退勤を即座に送信
-    sendData();
+    sendData(time, wageOut, lastCustomer, outErrors);
   }
 
   // =====================
@@ -624,7 +577,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyqKIWI09ZxOdbt2rzvE_zFvVd8EjXZXkhDg4s9YGes4cXyjP_myQFByVUcuGSbU-0O/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxcrPIcxRRV0st9vN8DKcYu7x_f28KUGbMk8NucvQz7_1rBsSF6gayOcRk5X2v2XxHP/exec';
 
   function sendData() {
     if (!currentEntry) return;
@@ -661,8 +614,23 @@
   // =====================
   // 退勤送信
   // =====================
-  function sendData() {
+  function sendData(outTime, wageOut, lastCustomer, outErrors) {
     if (!currentEntry) return;
+
+    // sessionStorageから出勤データを読み込んでinTimeを補完
+    try {
+      const saved = sessionStorage.getItem('dakokuEntry');
+      if (saved) {
+        const savedEntry = JSON.parse(saved);
+        if (savedEntry.staff === currentEntry.staff &&
+            savedEntry.store === currentEntry.store) {
+          currentEntry.inTime = savedEntry.inTime || currentEntry.inTime;
+          const inErrs = savedEntry.errors || [];
+          const curErrs = currentEntry.errors || [];
+          currentEntry.errors = [...inErrs, ...curErrs];
+        }
+      }
+    } catch(e) {}
 
     const transport = calcTransport(currentEntry.staff, currentEntry.store);
     const totalWithTransport = (currentEntry.calcPay ? currentEntry.calcPay.total : 0) + transport;
@@ -672,7 +640,7 @@
       staff:      currentEntry.staff,
       store:      currentEntry.store,
       shiftLabel: labelShift(currentEntry.shift),
-      inTime:     currentEntry.inTime,
+      inTime:     currentEntry.inTime || '',
       wageIn:     currentEntry.wageIn,
       outTime:    currentEntry.outTime,
       wageOut:    currentEntry.wageOut,
@@ -697,6 +665,29 @@
       body: JSON.stringify(payload)
     })
     .then(() => {
+      try { sessionStorage.removeItem('dakokuEntry'); } catch(e) {}
+
+      // 退勤詳細を完了画面に表示
+      const detail = document.getElementById('sent-detail');
+      let detailHtml = `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">店舗</span><span style="font-weight:500">${currentEntry.store}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">スタッフ</span><span style="font-weight:500">${currentEntry.staff}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">シフト区分</span><span style="font-weight:500">${labelShift(currentEntry.shift)}</span></div>`;
+      if (currentEntry.inTime) {
+        detailHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">出勤打刻時刻</span><span style="font-weight:500">${currentEntry.inTime}</span></div>`;
+      }
+      detailHtml += `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">シフト開始時刻</span><span style="font-weight:500">${currentEntry.wageIn}</span></div>`;
+      if (lastCustomer) {
+        detailHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">最終顧客退店</span><span style="font-weight:500">${lastCustomer}</span></div>`;
+      }
+      detailHtml += `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">退勤打刻時刻</span><span style="font-weight:500">${currentEntry.outTime}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:#888">シフト終了時刻</span><span style="font-weight:500">${currentEntry.wageOut}</span></div>`;
+      detail.innerHTML = detailHtml;
+      detail.classList.remove('hidden');
+
+      // エラー表示
       const errors = currentEntry.errors || [];
       const sentNotice = document.getElementById('sent-error-notice');
       if (errors.length > 0) {
@@ -711,6 +702,8 @@
       document.getElementById('sent-view').classList.remove('hidden');
     })
     .catch(() => {
+      const btns = document.querySelectorAll('.btn-out');
+      btns.forEach(b => { b.textContent = '退勤'; b.disabled = false; });
       alert('退勤送信に失敗しました。ネットワークを確認してください。');
     });
   }
@@ -719,6 +712,7 @@
   // リセット
   // =====================
   function resetAll() {
+    try { sessionStorage.removeItem('dakokuEntry'); } catch(e) {}
     location.reload();
   }
 </script>
