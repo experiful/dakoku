@@ -371,37 +371,62 @@
     }
 
     currentEntry = entry;
-
-    // sessionStorageに保存（ページリロード対策）
     try { sessionStorage.setItem('dakokuEntry', JSON.stringify(entry)); } catch(e) {}
-
     lockForm();
 
-    // 出勤完了画面へ（GAS送信なし）
-    const errors = entry.errors || [];
-    // 詳細情報
-    const detail = document.getElementById('sent-detail');
-    let detailHtml = `
-      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">店舗</span><span style="font-weight:500">${store}</span></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">スタッフ</span><span style="font-weight:500">${staff}</span></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">シフト区分</span><span style="font-weight:500">${labelShift(shift)}</span></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">出勤打刻時刻</span><span style="font-weight:500">${time}</span></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:#888">シフト開始時刻</span><span style="font-weight:500">${entry.wageIn}</span></div>
-    `;
-    detail.innerHTML = detailHtml;
-    detail.classList.remove('hidden');
+    // 出勤をGASに送信
+    const btnIn = document.getElementById('btn-in');
+    btnIn.textContent = '送信中...';
+    btnIn.disabled = true;
 
-    const sentNotice = document.getElementById('sent-error-notice');
-    if (errors.length > 0) {
-      sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' +
-        errors.map(e => '・' + e).join('<br>');
-      sentNotice.classList.remove('hidden');
-    } else {
-      sentNotice.classList.add('hidden');
-    }
-    document.getElementById('sent-title').textContent = '出勤を記録しました';
-    document.getElementById('main-view').classList.add('hidden');
-    document.getElementById('sent-view').classList.remove('hidden');
+    const inPayload = {
+      type:      'clockin',
+      staff, store,
+      shiftLabel: labelShift(shift),
+      gmTitle:   entry.gmTitle || '',
+      inTime:    time,
+      wageIn:    entry.wageIn,
+      wageOut:   entry.wageOut || '',
+      hourlyWage: STAFF_WAGE[staff] || 1226,
+      allowance: entry.allowance || 0,
+      errors:    entry.errors,
+      multi:     false,
+      clientIP,
+    };
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inPayload)
+    })
+    .then(() => {
+      const errors = entry.errors || [];
+      const detail = document.getElementById('sent-detail');
+      detail.innerHTML = `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">店舗</span><span style="font-weight:500">${store}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">スタッフ</span><span style="font-weight:500">${staff}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">シフト区分</span><span style="font-weight:500">${labelShift(shift)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">出勤打刻時刻</span><span style="font-weight:500">${time}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:#888">シフト開始時刻</span><span style="font-weight:500">${entry.wageIn}</span></div>
+      `;
+      detail.classList.remove('hidden');
+      const sentNotice = document.getElementById('sent-error-notice');
+      if (errors.length > 0) {
+        sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' + errors.map(e => '・' + e).join('<br>');
+        sentNotice.classList.remove('hidden');
+      } else {
+        sentNotice.classList.add('hidden');
+      }
+      document.getElementById('sent-title').textContent = '出勤を記録しました';
+      document.getElementById('main-view').classList.add('hidden');
+      document.getElementById('sent-view').classList.remove('hidden');
+    })
+    .catch(() => {
+      alert('出勤送信に失敗しました。ネットワークを確認してください。');
+      btnIn.textContent = '出勤';
+      btnIn.disabled = false;
+    });
   }
 
   function labelShift(s) {
@@ -577,7 +602,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxcrPIcxRRV0st9vN8DKcYu7x_f28KUGbMk8NucvQz7_1rBsSF6gayOcRk5X2v2XxHP/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwC-sagDMhmlk-2_HZLx--4X_FzRs625Fs2ksWWKXrSu56gXSAzUCSx6HCtdgrSnOW_/exec';
 
   function sendData() {
     if (!currentEntry) return;
