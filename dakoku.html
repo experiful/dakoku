@@ -374,7 +374,6 @@
     try { sessionStorage.setItem('dakokuEntry', JSON.stringify(entry)); } catch(e) {}
     lockForm();
 
-    // 出勤をGASに送信
     const btnIn = document.getElementById('btn-in');
     btnIn.textContent = '送信中...';
     btnIn.disabled = true;
@@ -600,7 +599,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzq2lUB9U1YOvDVC6EUu36YdrdTOY4k_Z-DRSmvVOxKi3NAuirx2y3FKVrmjNDsGw7i/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbywNV_RUKrjsqcUilPlOsbtygla1LuxjhBWIEqK4yF4h8Bp0RU4r7vn_kiR0Lf9RJbT/exec';
 
   // =====================
   // 退勤送信
