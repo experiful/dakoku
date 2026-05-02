@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Experiful 打刻管理２</title>
+<title>Experiful 打刻管理</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: #f5f5f0; min-height: 100vh; }
@@ -48,7 +48,7 @@
 <body>
 <div class="app" id="app-root">
   <div class="header">
-    <h1>Experiful 打刻管理２</h1>
+    <h1>Experiful 打刻管理</h1>
     <p id="current-time">-</p>
   </div>
 
@@ -394,7 +394,7 @@
         hourlyWage: STAFF_WAGE[staff] || 1226,
         allowance: entry.allowance || 0,
         errors: entry.errors,
-        multi: true,
+        multi: false,
         clientIP,
       })
     })
@@ -416,7 +416,7 @@
       } else {
         sentNotice.classList.add('hidden');
       }
-      document.getElementById('sent-title').textContent = '出勤を記録しました（2人体制）';
+      document.getElementById('sent-title').textContent = '出勤を記録しました';
       document.getElementById('main-view').classList.add('hidden');
       document.getElementById('sent-view').classList.remove('hidden');
     })
@@ -600,7 +600,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzq2lUB9U1YOvDVC6EUu36YdrdTOY4k_Z-DRSmvVOxKi3NAuirx2y3FKVrmjNDsGw7i/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwAO5XxrpBSuwK1fEh37ogRkDduM9p0cO_e7w0P6GbX1HployICV13R-CWaRyf9I5JU/exec';
 
   // =====================
   // 退勤送信
@@ -644,7 +644,7 @@
       lateMins:   currentEntry.calcPay ? currentEntry.calcPay.lateMins : 0,
       transport:  transport,
       totalWithTransport: totalWithTransport,
-      multi:      true,
+      multi:      false,
       clientIP:   clientIP,
       errors:     currentEntry.errors
     };
