@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Experiful 打刻管理</title>
+<title>Experiful 打刻管理２</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: #f5f5f0; min-height: 100vh; }
@@ -379,29 +379,26 @@
     btnIn.textContent = '送信中...';
     btnIn.disabled = true;
 
-    const inPayload = {
-      type:      'clockin',
-      staff, store,
-      shiftLabel: labelShift(shift),
-      gmTitle:   entry.gmTitle || '',
-      inTime:    time,
-      wageIn:    entry.wageIn,
-      wageOut:   entry.wageOut || '',
-      hourlyWage: STAFF_WAGE[staff] || 1226,
-      allowance: entry.allowance || 0,
-      errors:    entry.errors,
-      multi:     true,
-      clientIP,
-    };
-
     fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(inPayload)
+      body: JSON.stringify({
+        type: 'clockin',
+        staff, store,
+        shiftLabel: labelShift(shift),
+        gmTitle: entry.gmTitle || '',
+        inTime: time,
+        wageIn: entry.wageIn,
+        wageOut: entry.wageOut || '',
+        hourlyWage: STAFF_WAGE[staff] || 1226,
+        allowance: entry.allowance || 0,
+        errors: entry.errors,
+        multi: true,
+        clientIP,
+      })
     })
     .then(() => {
-      const errors = entry.errors || [];
       const detail = document.getElementById('sent-detail');
       detail.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">店舗</span><span style="font-weight:500">${store}</span></div>
@@ -411,6 +408,7 @@
         <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:#888">シフト開始時刻</span><span style="font-weight:500">${entry.wageIn}</span></div>
       `;
       detail.classList.remove('hidden');
+      const errors = entry.errors || [];
       const sentNotice = document.getElementById('sent-error-notice');
       if (errors.length > 0) {
         sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' + errors.map(e => '・' + e).join('<br>');
@@ -556,6 +554,34 @@
     '澪': 1226, 'こよみ': 1226,
   };
 
+  const TRANSPORT = {
+    // home: 所属店舗、fare: 各店舗への実費
+    // 銀座, 新宿, 池袋, 横浜, 梅田, 難波, 上野公演, 横浜公演
+    'LEOMAX':    { home: [], fare: {} },
+    'SASA':      { home: [], fare: {} },
+    'わいわい':  { home: [], fare: {} },
+    'Kちゃん。': { home: ['大阪梅田店','大阪難波店'], fare: {'大阪梅田店':500,'大阪難波店':500} },
+    'さくら':    { home: ['横浜駅前店','横浜公演部屋'], fare: {'東京銀座店':941,'東京新宿店':660,'東京池袋店':930,'横浜駅前店':293,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':909,'横浜公演部屋':293} },
+    'うえんつ':  { home: ['東京銀座店','上野公演部屋'], fare: {'東京銀座店':387,'東京新宿店':220,'東京池袋店':387,'横浜駅前店':619,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':178,'横浜公演部屋':748} },
+    'スパイシー': { home: ['横浜駅前店','横浜公演部屋'], fare: {'東京銀座店':1165,'東京新宿店':555,'東京池袋店':754,'横浜駅前店':471,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':1075,'横浜公演部屋':471} },
+    'こまち':    { home: ['東京新宿店'], fare: {'東京銀座店':497,'東京新宿店':443,'東京池袋店':497,'横浜駅前店':475,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':541,'横浜公演部屋':475} },
+    '晴雨*':     { home: ['東京銀座店','東京新宿店','横浜駅前店'], fare: {'東京銀座店':405,'東京新宿店':459,'東京池袋店':459,'横浜駅前店':309,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':502,'横浜公演部屋':309} },
+    '将軍':      { home: ['東京銀座店'], fare: {'東京銀座店':500,'東京新宿店':730,'東京池袋店':500,'横浜駅前店':1236,'大阪梅田店':0,'大阪難波店':0,'上野公演部屋':730,'横浜公演部屋':1236} },
+    'まっき→':  { home: ['大阪梅田店','大阪難波店'], fare: {'大阪梅田店':500,'大阪難波店':420} },
+    'ねる':      { home: ['大阪梅田店'], fare: {'大阪梅田店':500,'大阪難波店':500} },
+    'あお':      { home: ['大阪梅田店'], fare: {'大阪梅田店':500,'大阪難波店':500} },
+    'あーる':    { home: ['東京池袋店'], fare: {'東京銀座店':209,'東京新宿店':451,'東京池袋店':252,'横浜駅前店':780,'上野公演部屋':252,'横浜公演部屋':780} },
+    'ライチュウ':{ home: ['東京池袋店'], fare: {'東京銀座店':419,'東京新宿店':500,'東京池袋店':481,'横浜駅前店':947,'上野公演部屋':427,'横浜公演部屋':947} },
+    'オータニ':  { home: ['東京池袋店'], fare: {'東京銀座店':706,'東京新宿店':500,'東京池袋店':440,'横浜駅前店':1034,'上野公演部屋':528,'横浜公演部屋':1034} },
+    'かいちょー':{ home: ['東京池袋店'], fare: {'東京銀座店':500,'東京新宿店':628,'東京池袋店':429,'横浜駅前店':947,'上野公演部屋':500,'横浜公演部屋':947} },
+    'ユエ':      { home: ['東京銀座店'], fare: {'東京銀座店':366,'東京新宿店':575,'東京池袋店':377,'横浜駅前店':951,'上野公演部屋':335,'横浜公演部屋':951} },
+    'あち':      { home: ['大阪梅田店','大阪難波店'], fare: {'大阪梅田店':190,'大阪難波店':190} },
+    'わさび':    { home: ['東京池袋店'], fare: {'東京銀座店':252,'東京新宿店':252,'東京池袋店':261,'横浜駅前店':976,'上野公演部屋':470,'横浜公演部屋':976} },
+    '二代目':    { home: ['横浜駅前店','横浜公演部屋'], fare: {'東京銀座店':893,'東京新宿店':803,'東京池袋店':924,'横浜駅前店':209,'上野公演部屋':803,'横浜公演部屋':209} },
+    '澪':        { home: ['東京新宿店'], fare: {'東京銀座店':500,'東京新宿店':1266,'東京池袋店':0,'横浜駅前店':1627,'上野公演部屋':500,'横浜公演部屋':1627} },
+    'こよみ':    { home: ['東京新宿店'], fare: {'東京銀座店':209,'東京新宿店':451,'東京池袋店':252,'横浜駅前店':780,'上野公演部屋':387,'横浜公演部屋':780} },
+  };
+
   function calcTransport(staff, store) {
     const data = TRANSPORT[staff];
     if (!data) return 0;
@@ -574,23 +600,38 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDwuSIY19EBXVvqpm55DrW_ZR96SX5DTLoaU3VQEt8lySzQiY33Vu_1lfYu1pNXuEo/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzq2lUB9U1YOvDVC6EUu36YdrdTOY4k_Z-DRSmvVOxKi3NAuirx2y3FKVrmjNDsGw7i/exec';
 
-  function sendData() {
+  // =====================
+  // 退勤送信
+  // =====================
+  function sendData(outTime, wageOut, lastCustomer, outErrors) {
     if (!currentEntry) return;
 
-    const btn = document.getElementById('btn-send');
-    btn.textContent = '確認中...';
-    btn.disabled = true;
+    // sessionStorageから出勤データを読み込んでinTimeを補完
+    try {
+      const saved = sessionStorage.getItem('dakokuEntry');
+      if (saved) {
+        const savedEntry = JSON.parse(saved);
+        if (savedEntry.staff === currentEntry.staff &&
+            savedEntry.store === currentEntry.store) {
+          currentEntry.inTime = savedEntry.inTime || currentEntry.inTime;
+          const inErrs = savedEntry.errors || [];
+          const curErrs = currentEntry.errors || [];
+          currentEntry.errors = [...inErrs, ...curErrs];
+        }
+      }
+    } catch(e) {}
 
     const transport = calcTransport(currentEntry.staff, currentEntry.store);
     const totalWithTransport = (currentEntry.calcPay ? currentEntry.calcPay.total : 0) + transport;
 
     const payload = {
+      type:       'clockout',
       staff:      currentEntry.staff,
       store:      currentEntry.store,
       shiftLabel: labelShift(currentEntry.shift),
-      inTime:     currentEntry.inTime,
+      inTime:     currentEntry.inTime || '',
       wageIn:     currentEntry.wageIn,
       outTime:    currentEntry.outTime,
       wageOut:    currentEntry.wageOut,
@@ -608,11 +649,6 @@
       errors:     currentEntry.errors
     };
 
-    // 直接送信
-    postData(payload, btn);
-  }
-
-  function postData(payload, btn) {
     fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -620,13 +656,46 @@
       body: JSON.stringify(payload)
     })
     .then(() => {
+      try { sessionStorage.removeItem('dakokuEntry'); } catch(e) {}
+
+      // 退勤詳細を完了画面に表示
+      const detail = document.getElementById('sent-detail');
+      let detailHtml = `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">店舗</span><span style="font-weight:500">${currentEntry.store}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">スタッフ</span><span style="font-weight:500">${currentEntry.staff}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">シフト区分</span><span style="font-weight:500">${labelShift(currentEntry.shift)}</span></div>`;
+      if (currentEntry.inTime) {
+        detailHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">出勤打刻時刻</span><span style="font-weight:500">${currentEntry.inTime}</span></div>`;
+      }
+      detailHtml += `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">シフト開始時刻</span><span style="font-weight:500">${currentEntry.wageIn}</span></div>`;
+      if (lastCustomer) {
+        detailHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">最終顧客退店</span><span style="font-weight:500">${lastCustomer}</span></div>`;
+      }
+      detailHtml += `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">退勤打刻時刻</span><span style="font-weight:500">${currentEntry.outTime}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:#888">シフト終了時刻</span><span style="font-weight:500">${currentEntry.wageOut}</span></div>`;
+      detail.innerHTML = detailHtml;
+      detail.classList.remove('hidden');
+
+      // エラー表示
+      const errors = currentEntry.errors || [];
+      const sentNotice = document.getElementById('sent-error-notice');
+      if (errors.length > 0) {
+        sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' +
+          errors.map(e => '・' + e).join('<br>');
+        sentNotice.classList.remove('hidden');
+      } else {
+        sentNotice.classList.add('hidden');
+      }
+      document.getElementById('sent-title').textContent = '退勤を記録しました';
       document.getElementById('main-view').classList.add('hidden');
       document.getElementById('sent-view').classList.remove('hidden');
     })
     .catch(() => {
-      alert('送信に失敗しました。ネットワークを確認してください。');
-      btn.textContent = '送信';
-      btn.disabled = false;
+      const btns = document.querySelectorAll('.btn-out');
+      btns.forEach(b => { b.textContent = '退勤'; b.disabled = false; });
+      alert('退勤送信に失敗しました。ネットワークを確認してください。');
     });
   }
 
@@ -634,6 +703,7 @@
   // リセット
   // =====================
   function resetAll() {
+    try { sessionStorage.removeItem('dakokuEntry'); } catch(e) {}
     location.reload();
   }
 </script>
