@@ -379,29 +379,26 @@
     btnIn.textContent = '送信中...';
     btnIn.disabled = true;
 
-    const inPayload = {
-      type:      'clockin',
-      staff, store,
-      shiftLabel: labelShift(shift),
-      gmTitle:   entry.gmTitle || '',
-      inTime:    time,
-      wageIn:    entry.wageIn,
-      wageOut:   entry.wageOut || '',
-      hourlyWage: STAFF_WAGE[staff] || 1226,
-      allowance: entry.allowance || 0,
-      errors:    entry.errors,
-      multi:     false,
-      clientIP,
-    };
-
     fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(inPayload)
+      body: JSON.stringify({
+        type: 'clockin',
+        staff, store,
+        shiftLabel: labelShift(shift),
+        gmTitle: entry.gmTitle || '',
+        inTime: time,
+        wageIn: entry.wageIn,
+        wageOut: entry.wageOut || '',
+        hourlyWage: STAFF_WAGE[staff] || 1226,
+        allowance: entry.allowance || 0,
+        errors: entry.errors,
+        multi: false,
+        clientIP,
+      })
     })
     .then(() => {
-      const errors = entry.errors || [];
       const detail = document.getElementById('sent-detail');
       detail.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)"><span style="color:#888">店舗</span><span style="font-weight:500">${store}</span></div>
@@ -411,6 +408,7 @@
         <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:#888">シフト開始時刻</span><span style="font-weight:500">${entry.wageIn}</span></div>
       `;
       detail.classList.remove('hidden');
+      const errors = entry.errors || [];
       const sentNotice = document.getElementById('sent-error-notice');
       if (errors.length > 0) {
         sentNotice.innerHTML = '⚠️【エラー ' + errors.length + '件】別途報告すること<br>' + errors.map(e => '・' + e).join('<br>');
@@ -602,39 +600,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDwuSIY19EBXVvqpm55DrW_ZR96SX5DTLoaU3VQEt8lySzQiY33Vu_1lfYu1pNXuEo/exec';
-
-  function sendData() {
-    if (!currentEntry) return;
-
-    const btn = document.getElementById('btn-send');
-    btn.textContent = '確認中...';
-    btn.disabled = true;
-
-    const transport = calcTransport(currentEntry.staff, currentEntry.store);
-    const totalWithTransport = (currentEntry.calcPay ? currentEntry.calcPay.total : 0) + transport;
-
-    const payload = {
-      staff:      currentEntry.staff,
-      store:      currentEntry.store,
-      shiftLabel: labelShift(currentEntry.shift),
-      inTime:     currentEntry.inTime,
-      wageIn:     currentEntry.wageIn,
-      outTime:    currentEntry.outTime,
-      wageOut:    currentEntry.wageOut,
-      lastCustomer: currentEntry.lastCustomer,
-      gmTitle:    currentEntry.gmTitle || '',
-      hourlyWage: STAFF_WAGE[currentEntry.staff] || 1226,
-      allowance:  currentEntry.allowance || 0,
-      calcPay:    currentEntry.calcPay,
-      workMins:   currentEntry.calcPay ? currentEntry.calcPay.workMins : 0,
-      lateMins:   currentEntry.calcPay ? currentEntry.calcPay.lateMins : 0,
-      transport:  transport,
-      totalWithTransport: totalWithTransport,
-      clientIP:   clientIP,
-      errors:     currentEntry.errors
-    };
-  }
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzq2lUB9U1YOvDVC6EUu36YdrdTOY4k_Z-DRSmvVOxKi3NAuirx2y3FKVrmjNDsGw7i/exec';
 
   // =====================
   // 退勤送信
