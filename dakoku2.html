@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Experiful 打刻管理</title>
+<title>Experiful 打刻管理２</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: #f5f5f0; min-height: 100vh; }
@@ -48,7 +48,7 @@
 <body>
 <div class="app" id="app-root">
   <div class="header">
-    <h1>Experiful 打刻管理</h1>
+    <h1>Experiful 打刻管理２</h1>
     <p id="current-time">-</p>
   </div>
 
@@ -374,7 +374,6 @@
     try { sessionStorage.setItem('dakokuEntry', JSON.stringify(entry)); } catch(e) {}
     lockForm();
 
-    // 出勤をGASに送信
     const btnIn = document.getElementById('btn-in');
     btnIn.textContent = '送信中...';
     btnIn.disabled = true;
@@ -394,7 +393,7 @@
         hourlyWage: STAFF_WAGE[staff] || 1226,
         allowance: entry.allowance || 0,
         errors: entry.errors,
-        multi: false,
+        multi: true,
         clientIP,
       })
     })
@@ -416,7 +415,7 @@
       } else {
         sentNotice.classList.add('hidden');
       }
-      document.getElementById('sent-title').textContent = '出勤を記録しました';
+      document.getElementById('sent-title').textContent = '出勤を記録しました（2人体制）';
       document.getElementById('main-view').classList.add('hidden');
       document.getElementById('sent-view').classList.remove('hidden');
     })
@@ -600,7 +599,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwAO5XxrpBSuwK1fEh37ogRkDduM9p0cO_e7w0P6GbX1HployICV13R-CWaRyf9I5JU/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbywNV_RUKrjsqcUilPlOsbtygla1LuxjhBWIEqK4yF4h8Bp0RU4r7vn_kiR0Lf9RJbT/exec';
 
   // =====================
   // 退勤送信
@@ -644,7 +643,7 @@
       lateMins:   currentEntry.calcPay ? currentEntry.calcPay.lateMins : 0,
       transport:  transport,
       totalWithTransport: totalWithTransport,
-      multi:      false,
+      multi:      true,
       clientIP:   clientIP,
       errors:     currentEntry.errors
     };
@@ -688,7 +687,7 @@
       } else {
         sentNotice.classList.add('hidden');
       }
-      document.getElementById('sent-title').textContent = '退勤を記録しました';
+      document.getElementById('sent-title').textContent = '退勤を記録しました（2人体制）';
       document.getElementById('main-view').classList.add('hidden');
       document.getElementById('sent-view').classList.remove('hidden');
     })
