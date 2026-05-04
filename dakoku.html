@@ -497,13 +497,17 @@
     } else {
       const type = getVal('checkout-type');
       if (!type) { alert('退勤パターンを選択してください'); return; }
-      if (type === 'b') {
+      if (type === 'a') {
+        lastCustomer = '20:50以前';
+      } else if (type === 'b') {
         lastCustomer = getVal('last-customer-time');
         if (!lastCustomer) { alert('最終顧客退店時刻を入力してください'); return; }
         if (toMins(lastCustomer) < toMins('20:51') || toMins(lastCustomer) > toMins('22:59')) {
           alert('最終顧客退店時刻は20:51〜22:59の範囲で入力してください');
           return;
         }
+      } else if (type === 'c') {
+        lastCustomer = '23:00以降';
       }
       wageOut = calcWageOut(type, lastCustomer);
       if (type === 'a' && toMins(time) < toMins('21:00')) {
@@ -599,7 +603,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzP8SHYLjWabl4db1oO3Pd3GTs8yuaQV-k4nZCUgsGVdtBT4zdPc6VNDA1sAvGzqqk/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxOD3DVhJ6i4mIEDauQHWUh6gKrtiNWs-79-hSu1JyIhmxzmlDUizwu7ynKGcqhXhbI/exec';
 
   // =====================
   // 退勤送信
