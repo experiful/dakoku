@@ -207,18 +207,18 @@
   // =====================
   const GM_SESSIONS = {
     '大阪梅田店': [
-      { label: '夜 18:15〜22:45', val: '梅田夜', in: '18:15', out: '22:45' }
+      { label: '夜 18:15〜22:45', val: '梅田夜', wageIn: '18:15', wageOut: '22:45' }
     ],
     '大阪なんば店': [
-      { label: '夜 18:15〜22:45', val: '難波夜', in: '18:15', out: '22:45' }
+      { label: '夜 18:15〜22:45', val: '難波夜', wageIn: '18:15', wageOut: '22:45' }
     ],
     '上野公演部屋': [
-      { label: '昼 12:45〜17:15', val: '上野昼', in: '12:45', out: '17:15' },
-      { label: '夜 18:15〜22:45', val: '上野夜', in: '18:15', out: '22:45' }
+      { label: '昼 12:45〜17:15', val: '上野昼', wageIn: '12:45', wageOut: '17:15' },
+      { label: '夜 18:15〜22:45', val: '上野夜', wageIn: '18:15', wageOut: '22:45' }
     ],
     '横浜公演部屋': [
-      { label: '昼 10:15〜14:45', val: '横浜昼', in: '10:15', out: '14:45' },
-      { label: '夜 15:45〜20:15', val: '横浜夜', in: '15:45', out: '20:15' }
+      { label: '昼 10:15〜14:45', val: '横浜昼', wageIn: '10:15', wageOut: '14:45' },
+      { label: '夜 15:45〜20:15', val: '横浜夜', wageIn: '15:45', wageOut: '20:15' }
     ]
   };
 
@@ -276,8 +276,8 @@
       sessions.forEach(s => {
         const o = document.createElement('option');
         o.value = s.val;
-        o.dataset.in = s.in;
-        o.dataset.out = s.out;
+        o.dataset.wageIn = s.wageIn;
+        o.dataset.wageOut = s.wageOut;
         o.textContent = store + ' ' + s.label;
         sel.appendChild(o);
       });
@@ -363,8 +363,8 @@
     if (shift === 'gm') {
       const sel = document.getElementById('gm-session');
       const opt = sel.options[sel.selectedIndex];
-      entry.wageIn  = opt.dataset.in;
-      entry.wageOut = opt.dataset.out;
+      entry.wageIn  = opt.dataset.wagein;
+      entry.wageOut = opt.dataset.wageout;
       entry.gmTitle = getVal('gm-title');
       const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
       entry.allowance = parseInt(tOpt.dataset.allowance) || 0;
@@ -383,6 +383,11 @@
     btnIn.textContent = '送信中...';
     btnIn.disabled = true;
 
+    // GM公演は出勤打刻時点でwageIn/wageOut確定→calcPayも計算して送信
+    const gmCalcPay = (shift === 'gm' && entry.wageIn && entry.wageOut)
+      ? calcWage(entry.wageIn, entry.wageOut, STAFF_WAGE[staff] || 1226, entry.allowance || 0, shift)
+      : null;
+
     fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -398,6 +403,7 @@
         hourlyWage: STAFF_WAGE[staff] || 1226,
         allowance: entry.allowance || 0,
         realName: STAFF_REAL[staff] || '',
+        calcPay: gmCalcPay,
         errors: entry.errors,
         multi: false,
         clientIP,
@@ -493,8 +499,8 @@
     if (shift === 'gm') {
       const sel = document.getElementById('gm-session');
       const opt = sel.options[sel.selectedIndex];
-      gmWageIn  = opt.dataset.in;
-      gmWageOut = opt.dataset.out;
+      gmWageIn  = opt.dataset.wagein;
+      gmWageOut = opt.dataset.wageout;
       wageOut   = gmWageOut;
       gmTitle   = getVal('gm-title');
       const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
