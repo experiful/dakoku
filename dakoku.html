@@ -275,9 +275,7 @@
     } else {
       sessions.forEach(s => {
         const o = document.createElement('option');
-        o.value = s.val;
-        o.dataset.wageIn = s.wageIn;
-        o.dataset.wageOut = s.wageOut;
+        o.value = s.val + '|' + s.wageIn + '|' + s.wageOut;
         o.textContent = store + ' ' + s.label;
         sel.appendChild(o);
       });
@@ -363,8 +361,10 @@
     if (shift === 'gm') {
       const sel = document.getElementById('gm-session');
       const opt = sel.options[sel.selectedIndex];
-      entry.wageIn  = opt.dataset.wagein;
-      entry.wageOut = opt.dataset.wageout;
+      const gmParts = opt ? opt.value.split('|') : [];
+      entry.wageIn  = gmParts[1] || '';
+      entry.wageOut = gmParts[2] || '';
+      if (!entry.wageIn || !entry.wageOut) { alert('公演時間帯を選択してください'); return; }
       entry.gmTitle = getVal('gm-title');
       const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
       entry.allowance = parseInt(tOpt.dataset.allowance) || 0;
@@ -499,8 +499,10 @@
     if (shift === 'gm') {
       const sel = document.getElementById('gm-session');
       const opt = sel.options[sel.selectedIndex];
-      gmWageIn  = opt.dataset.wagein;
-      gmWageOut = opt.dataset.wageout;
+      const gmParts = opt ? opt.value.split('|') : [];
+      gmWageIn  = gmParts[1] || '';
+      gmWageOut = gmParts[2] || '';
+      if (!gmWageIn || !gmWageOut) { alert('公演時間帯を選択してください'); return; }
       wageOut   = gmWageOut;
       gmTitle   = getVal('gm-title');
       const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
