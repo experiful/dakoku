@@ -111,8 +111,8 @@
       <div class="section-label">シフト区分</div>
       <select id="shift-type" onchange="onShiftChange()">
         <option value="">選択してください</option>
-        <option value="early">早番 11:20~17:00</option>
-        <option value="late">遅番 18:00~21:00または最終顧客10分後</option>
+        <option value="early">早番 11:20~17:20</option>
+        <option value="late">遅番 18:20~21:00または最終顧客10分後</option>
         <option value="full">全日 11:20~21:00または最終顧客10分後</option>
         <option value="gm">GM公演</option>
       </select>
@@ -146,7 +146,7 @@
 
       <!-- 早番退勤（17:00固定） -->
       <div id="early-checkout-wrap" class="hidden">
-        <div class="gm-notice">早番のシフト終了時刻は17:00です</div>
+        <div class="gm-notice">早番のシフト終了時刻は17:20です</div>
         <button class="btn btn-out" onclick="clockOut()">退勤</button>
       </div>
 
@@ -347,7 +347,7 @@
     const shift = getVal('shift-type');
     const store = getVal('store');
     const staff = getVal('staff');
-    const wageInMap = { early: '11:20', late: '18:00', full: '11:20' };
+    const wageInMap = { early: '11:20', late: '18:20', full: '11:20' };
 
     const entry = {
       staff, store, shift,
@@ -488,7 +488,7 @@
     const shift = getVal('shift-type');
     const store = getVal('store');
     const staff = getVal('staff');
-    const wageInMap = { early: '11:20', late: '18:00', full: '11:20' };
+    const wageInMap = { early: '11:20', late: '18:20', full: '11:20' };
     const wageIn = wageInMap[shift] || time;
 
     let wageOut, lastCustomer = null;
@@ -508,9 +508,9 @@
       const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
       allowance = parseInt(tOpt.dataset.allowance) || 0;
     } else if (shift === 'early') {
-      wageOut = '17:00';
-      if (toMins(time) < toMins('17:00')) {
-        outErrors.push('退勤打刻時刻（' + time + '）がシフト終了時刻（17:00）より早いです');
+      wageOut = '17:20';
+      if (toMins(time) < toMins('17:20')) {
+        outErrors.push('退勤打刻時刻（' + time + '）がシフト終了時刻（17:20）より早いです');
       }
     } else {
       const type = getVal('checkout-type');
