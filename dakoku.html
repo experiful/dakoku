@@ -348,6 +348,8 @@
     const store = getVal('store');
     const staff = getVal('staff');
     const wageInMap = { early: '11:20', late: '18:20', full: '11:20' };
+    // 仮のシフト終了時刻（退勤打刻なしの場合の暫定給与計算に使用）
+    const provisionalWageOutMap = { early: '17:20', late: '21:00', full: '21:00' };
 
     const entry = {
       staff, store, shift,
@@ -358,6 +360,9 @@
       gmTitle: '', errors: []
     };
 
+    // 仮のシフト終了時刻（GM公演はセッション終了時刻、それ以外はprovisionalWageOutMap）
+    let provisionalWageOut = provisionalWageOutMap[shift] || '';
+
     if (shift === 'gm') {
       const sel = document.getElementById('gm-session');
       const opt = sel.options[sel.selectedIndex];
@@ -365,6 +370,7 @@
       entry.wageIn  = gmParts[1] || '';
       entry.wageOut = gmParts[2] || '';
       if (!entry.wageIn || !entry.wageOut) { alert('公演時間帯を選択してください'); return; }
+      provisionalWageOut = entry.wageOut;
       entry.gmTitle = getVal('gm-title');
       const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
       entry.allowance = parseInt(tOpt.dataset.allowance) || 0;
@@ -374,6 +380,8 @@
     if (toMins(time) > toMins(entry.wageIn)) {
       entry.errors.push('出勤打刻時刻（' + time + '）がシフト開始時刻（' + entry.wageIn + '）より遅れています');
     }
+    // 退勤打刻がまだないことを示すエラー（退勤時に消える）
+    entry.errors.push('退勤打刻なし');
 
     currentEntry = entry;
     try { sessionStorage.setItem('dakokuEntry', JSON.stringify(entry)); } catch(e) {}
@@ -383,9 +391,10 @@
     btnIn.textContent = '送信中...';
     btnIn.disabled = true;
 
-    // GM公演は出勤打刻時点でwageIn/wageOut確定→calcPayも計算して送信
-    const gmCalcPay = (shift === 'gm' && entry.wageIn && entry.wageOut)
-      ? calcWage(entry.wageIn, entry.wageOut, STAFF_WAGE[staff] || 1226, entry.allowance || 0, shift)
+    // 出勤打刻時点で仮のシフト終了時刻を使い暫定の給与を計算して送信
+    // （退勤打刻を忘れた場合でも給与が0円にならないようにするため）
+    const provisionalCalcPay = (entry.wageIn && provisionalWageOut)
+      ? calcWage(entry.wageIn, provisionalWageOut, STAFF_WAGE[staff] || 1226, entry.allowance || 0, shift)
       : null;
 
     fetch(GAS_URL, {
@@ -400,10 +409,11 @@
         inTime: time,
         wageIn: entry.wageIn,
         wageOut: entry.wageOut || '',
+        provisionalWageOut: provisionalWageOut,
         hourlyWage: STAFF_WAGE[staff] || 1226,
         allowance: entry.allowance || 0,
         realName: STAFF_REAL[staff] || '',
-        calcPay: gmCalcPay,
+        calcPay: provisionalCalcPay,
         errors: entry.errors,
         multi: false,
         clientIP,
@@ -674,7 +684,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzwgKZnFSa1rPSR7PirM1vqMKKwfos3VVpfCorUHoF9r_Uj3__ekJsjT9OGHK1ZIVL2/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbySJKV-x8Ul1o1uPnS68SrlJQAKgNj39p0PBYE816zutd1RTxSOu1eGjWTtnys9nOQZ/exec';
 
   // =====================
   // 退勤送信
