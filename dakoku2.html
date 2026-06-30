@@ -380,9 +380,6 @@
     if (toMins(time) > toMins(entry.wageIn)) {
       entry.errors.push('出勤打刻時刻（' + time + '）がシフト開始時刻（' + entry.wageIn + '）より遅れています');
     }
-    // 退勤打刻がまだないことを示すエラー（退勤時に消える）
-    entry.errors.push('退勤打刻なし');
-
     currentEntry = entry;
     try { sessionStorage.setItem('dakokuEntry', JSON.stringify(entry)); } catch(e) {}
     lockForm();
@@ -684,7 +681,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbySJKV-x8Ul1o1uPnS68SrlJQAKgNj39p0PBYE816zutd1RTxSOu1eGjWTtnys9nOQZ/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwA2qkC3e3MVQ5yM_iMlBIqJLVQh-TVIPFBU9bcgSZpbImdf0wbx9z_NERi4FZ2nBoH/exec';
 
   // =====================
   // 退勤送信
