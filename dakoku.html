@@ -113,7 +113,7 @@
         <option value="">選択してください</option>
         <option value="early">早番 11:20~17:20</option>
         <option value="late">遅番 18:20~21:00または最終顧客10分後</option>
-        <option value="full">全日 11:20~21:00または最終顧客10分後</option>
+        <option value="full">全日 11:20~21:00または最終顧客10分後（休憩60分）</option>
         <option value="gm">GM公演</option>
       </select>
 
@@ -225,23 +225,30 @@
   // =====================
   // GM公演の店舗別時間帯
   // =====================
+  // GM公演対応店舗のみ定義（未定義店舗はGM公演選択不可）
   const GM_SESSIONS = {
     '大阪梅田店': [
       { label: '夜 18:15〜22:45', val: '梅田夜', wageIn: '18:15', wageOut: '22:45' }
     ],
-    '大阪なんば店': [
-      { label: '夜 18:15〜22:45', val: '難波夜', wageIn: '18:15', wageOut: '22:45' }
-    ],
     '上野公演部屋': [
       { label: '昼公演 12:45〜17:15', val: '上野昼', wageIn: '12:45', wageOut: '17:15' },
       { label: '夜公演 18:15〜22:45', val: '上野夜', wageIn: '18:15', wageOut: '22:45' },
-      { label: '昼夜2公演 12:45〜22:45（休憩60分）', val: '上野両', wageIn: '12:45', wageOut: '22:45', breakMins: 60 }
+      { label: '昼夜２公演 12:45〜22:45（休憩60分）', val: '上野両', wageIn: '12:45', wageOut: '22:45', breakMins: 60 }
     ],
     '横浜公演部屋': [
       { label: '昼公演 10:15〜14:45', val: '横浜昼', wageIn: '10:15', wageOut: '14:45' },
       { label: '夜公演 15:45〜20:15', val: '横浜夜', wageIn: '15:45', wageOut: '20:15' },
-      { label: '昼夜2公演 10:15〜20:15（休憩60分）', val: '横浜両', wageIn: '10:15', wageOut: '20:15', breakMins: 60 }
+      { label: '昼夜２公演 10:15〜20:15（休憩60分）', val: '横浜両', wageIn: '10:15', wageOut: '20:15', breakMins: 60 }
     ]
+  };
+
+  // 店舗ごとに選べる公演作品
+  const GM_TITLES = {
+    '大阪梅田店':  [{ val: 'あなたの原罪',      allowance: 0 }],
+    '上野公演部屋': [{ val: 'あなたの原罪',      allowance: 0 },
+                    { val: '夜明ケヨリモ向コウ側', allowance: 500 }],
+    '横浜公演部屋': [{ val: '夏色漂流詩',        allowance: 500 },
+                    { val: '8CAMP',              allowance: 1000 }],
   };
 
   // 打刻中のデータ
@@ -277,11 +284,41 @@
     const type = getVal('clock-type');
     document.getElementById('clock-in-card').classList.toggle('hidden', type !== 'in');
     document.getElementById('clock-out-card').classList.toggle('hidden', type !== 'out');
-    if (type === 'out') onShiftChange(); // 退勤選択時にシフト区分に応じた表示更新
+    onShiftChange(); // 打刻種別変更時にシフト区分表示を更新（退勤時gm-block非表示含む）
   }
 
   function onStoreChange() {
+    updateGmAvailability();
     if (getVal('shift-type') === 'gm') updateGmSessions();
+  }
+
+  // 公演部屋のみの店舗（早番・遅番・全日なし）
+  const PERFORMANCE_ONLY_STORES = ['横浜公演部屋', '上野公演部屋'];
+
+  // GM公演対応店舗でなければ「GM公演」をdisabled、公演部屋は通常シフトをdisabledに
+  function updateGmAvailability() {
+    const store = getVal('store');
+    const gmOpt = document.querySelector('#shift-type option[value="gm"]');
+    if (!gmOpt) return;
+    const gmAvailable = !!GM_SESSIONS[store];
+    gmOpt.disabled = !gmAvailable;
+
+    // 公演部屋は早番・遅番・全日を非表示（disabled）
+    const perfOnly = PERFORMANCE_ONLY_STORES.includes(store);
+    ['early','late','full'].forEach(val => {
+      const opt = document.querySelector('#shift-type option[value="' + val + '"]');
+      if (opt) opt.disabled = perfOnly;
+    });
+
+    // 現在の選択が無効になった場合はリセット
+    const currentShift = getVal('shift-type');
+    if (!gmAvailable && currentShift === 'gm') {
+      document.getElementById('shift-type').value = '';
+      document.getElementById('gm-block').style.display = 'none';
+    }
+    if (perfOnly && ['early','late','full'].includes(currentShift)) {
+      document.getElementById('shift-type').value = '';
+    }
   }
 
   function onGmSessionChange() {
@@ -296,27 +333,40 @@
     const sel = document.getElementById('gm-session');
     sel.innerHTML = '<option value="">選択してください</option>';
     const sessions = GM_SESSIONS[store] || [];
-    if (!sessions.length) {
+    sessions.forEach(s => {
       const o = document.createElement('option');
-      o.disabled = true;
-      o.textContent = 'この店舗のGM公演はありません';
+      o.value = s.val + '|' + s.wageIn + '|' + s.wageOut + '|' + (s.breakMins || 0);
+      o.textContent = store + ' ' + s.label;
       sel.appendChild(o);
-    } else {
-      sessions.forEach(s => {
+    });
+    // 公演作品も店舗ごとに更新
+    updateGmTitles();
+  }
+
+  function updateGmTitles() {
+    const store = getVal('store');
+    const titles = GM_TITLES[store] || [];
+    ['gm-title','gm-title-day','gm-title-night'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">選択してください</option>';
+      titles.forEach(t => {
         const o = document.createElement('option');
-        o.value = s.val + '|' + s.wageIn + '|' + s.wageOut + '|' + (s.breakMins || 0);
-        o.textContent = store + ' ' + s.label;
+        o.value = t.val;
+        o.dataset.allowance = t.allowance;
+        o.textContent = t.val;
         sel.appendChild(o);
       });
-    }
+    });
   }
 
   function onShiftChange() {
     const v = getVal('shift-type');
+    const clockType = getVal('clock-type');
     document.getElementById('gm-block').style.display = (v === 'gm') ? 'block' : 'none';
+    if (v === 'gm') updateGmAvailability();
     const isGm    = v === 'gm';
     const isEarly = v === 'early';
-    const clockType = getVal('clock-type');
 
     if (clockType === 'out') {
       document.getElementById('early-checkout-wrap').classList.toggle('hidden', !isEarly);
@@ -407,7 +457,7 @@
       const gmParts = opt ? opt.value.split('|') : [];
       entry.wageIn    = gmParts[1] || '';
       entry.wageOut   = gmParts[2] || '';
-      entry.gmBreak   = parseInt(gmParts[3] || '0');  // 昼夜2公演の場合の休憩分
+      entry.gmBreak   = parseInt(gmParts[3] || '0');  // 昼夜２公演の場合の休憩分
       if (!entry.wageIn || !entry.wageOut) { alert('公演時間帯を選択してください'); return; }
       provisionalWageOut = entry.wageOut;
       const isDouble = entry.wageIn === '12:45' && entry.wageOut === '22:45' ||
@@ -523,7 +573,7 @@
   function calcWage(wageIn, wageOut, wage, allowance, shift, extraBreakMins) {
     let mins = toMins(wageOut) - toMins(wageIn);
     if (mins <= 0) return { normal: 0, late: 0, total: 0, workMins: 0, overMins: 0, overPay: 0, lateMins: 0 };
-    // 全日シフトは1時間（60分）を休憩として引く。GM昼夜2公演はextraBreakMinsを使用
+    // 全日シフトは1時間（60分）を休憩として引く。GM昼夜２公演はextraBreakMinsを使用
     const breakMins = (shift === 'full') ? 60 : (extraBreakMins || 0);
     const workMins = mins - breakMins;
     const midnight = 22 * 60;
@@ -748,7 +798,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbw_UJ3kS-YPM-VduMG0RKFdAJFLFDxdaDJBeHTpmcsYZ8-M0doo2yEOznerDdYW6Uh4/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyU9d6ViShfS2ZFcwHIl5RM8iALV7_U1SyWemjATv9GFuvOEzDTt7xlPZpu7IumWRDH/exec';
 
   // =====================
   // 退勤送信
