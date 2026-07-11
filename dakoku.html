@@ -213,12 +213,14 @@
       { label: '夜 18:15〜22:45', val: '難波夜', wageIn: '18:15', wageOut: '22:45' }
     ],
     '上野公演部屋': [
-      { label: '昼 12:45〜17:15', val: '上野昼', wageIn: '12:45', wageOut: '17:15' },
-      { label: '夜 18:15〜22:45', val: '上野夜', wageIn: '18:15', wageOut: '22:45' }
+      { label: '昼公演 12:45〜17:15', val: '上野昼', wageIn: '12:45', wageOut: '17:15' },
+      { label: '夜公演 18:15〜22:45', val: '上野夜', wageIn: '18:15', wageOut: '22:45' },
+      { label: '昼夜2公演 12:45〜22:45（休憩60分）', val: '上野両', wageIn: '12:45', wageOut: '22:45', breakMins: 60 }
     ],
     '横浜公演部屋': [
-      { label: '昼 10:15〜14:45', val: '横浜昼', wageIn: '10:15', wageOut: '14:45' },
-      { label: '夜 15:45〜20:15', val: '横浜夜', wageIn: '15:45', wageOut: '20:15' }
+      { label: '昼公演 10:15〜14:45', val: '横浜昼', wageIn: '10:15', wageOut: '14:45' },
+      { label: '夜公演 15:45〜20:15', val: '横浜夜', wageIn: '15:45', wageOut: '20:15' },
+      { label: '昼夜2公演 10:15〜20:15（休憩60分）', val: '横浜両', wageIn: '10:15', wageOut: '20:15', breakMins: 60 }
     ]
   };
 
@@ -275,7 +277,7 @@
     } else {
       sessions.forEach(s => {
         const o = document.createElement('option');
-        o.value = s.val + '|' + s.wageIn + '|' + s.wageOut;
+        o.value = s.val + '|' + s.wageIn + '|' + s.wageOut + '|' + (s.breakMins || 0);
         o.textContent = store + ' ' + s.label;
         sel.appendChild(o);
       });
@@ -367,8 +369,9 @@
       const sel = document.getElementById('gm-session');
       const opt = sel.options[sel.selectedIndex];
       const gmParts = opt ? opt.value.split('|') : [];
-      entry.wageIn  = gmParts[1] || '';
-      entry.wageOut = gmParts[2] || '';
+      entry.wageIn    = gmParts[1] || '';
+      entry.wageOut   = gmParts[2] || '';
+      entry.gmBreak   = parseInt(gmParts[3] || '0');  // 昼夜2公演の場合の休憩分
       if (!entry.wageIn || !entry.wageOut) { alert('公演時間帯を選択してください'); return; }
       provisionalWageOut = entry.wageOut;
       entry.gmTitle = getVal('gm-title');
@@ -391,7 +394,7 @@
     // 出勤打刻時点で仮のシフト終了時刻を使い暫定の給与を計算して送信
     // （退勤打刻を忘れた場合でも給与が0円にならないようにするため）
     const provisionalCalcPay = (entry.wageIn && provisionalWageOut)
-      ? calcWage(entry.wageIn, provisionalWageOut, STAFF_WAGE[staff] || 1226, entry.allowance || 0, shift)
+      ? calcWage(entry.wageIn, provisionalWageOut, STAFF_WAGE[staff] || 1226, entry.allowance || 0, shift, entry.gmBreak || 0)
       : null;
 
     fetch(GAS_URL, {
@@ -406,6 +409,7 @@
         inTime: time,
         wageIn: entry.wageIn,
         wageOut: entry.wageOut || '',
+        gmBreakMins: entry.gmBreak || 0,
         provisionalWageOut: provisionalWageOut,
         hourlyWage: STAFF_WAGE[staff] || 1226,
         allowance: entry.allowance || 0,
@@ -467,11 +471,11 @@
     return null;
   }
 
-  function calcWage(wageIn, wageOut, wage, allowance, shift) {
+  function calcWage(wageIn, wageOut, wage, allowance, shift, extraBreakMins) {
     let mins = toMins(wageOut) - toMins(wageIn);
     if (mins <= 0) return { normal: 0, late: 0, total: 0, workMins: 0, overMins: 0, overPay: 0, lateMins: 0 };
-    // 全日シフトは17:00〜18:00の1時間（60分）を休憩として引く
-    const breakMins = (shift === 'full') ? 60 : 0;
+    // 全日シフトは1時間（60分）を休憩として引く。GM昼夜2公演はextraBreakMinsを使用
+    const breakMins = (shift === 'full') ? 60 : (extraBreakMins || 0);
     const workMins = mins - breakMins;
     const midnight = 22 * 60;
     const outMins = toMins(wageOut);
@@ -502,13 +506,14 @@
     const outErrors = [];
 
     // GM公演のシフト開始・終了時刻を取得
-    let gmTitle = '', allowance = 0, gmWageIn = wageIn, gmWageOut = '';
+    let gmTitle = '', allowance = 0, gmWageIn = wageIn, gmWageOut = '', gmBreakMins = 0;
     if (shift === 'gm') {
       const sel = document.getElementById('gm-session');
       const opt = sel.options[sel.selectedIndex];
       const gmParts = opt ? opt.value.split('|') : [];
       gmWageIn  = gmParts[1] || '';
       gmWageOut = gmParts[2] || '';
+      gmBreakMins = parseInt(gmParts[3] || '0');
       if (!gmWageIn || !gmWageOut) { alert('公演時間帯を選択してください'); return; }
       wageOut   = gmWageOut;
       gmTitle   = getVal('gm-title');
@@ -548,7 +553,7 @@
 
     const finalWageIn = (shift === 'gm') ? gmWageIn : wageIn;
     const wage = STAFF_WAGE[staff] || 1226;
-    const pay = calcWage(finalWageIn, wageOut, wage, allowance, shift);
+    const pay = calcWage(finalWageIn, wageOut, wage, allowance, shift, gmBreakMins || 0);
 
     // currentEntryを退勤用に構築
     currentEntry = {
@@ -681,7 +686,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwA2qkC3e3MVQ5yM_iMlBIqJLVQh-TVIPFBU9bcgSZpbImdf0wbx9z_NERi4FZ2nBoH/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyBlw2FK54cxOr2dECvMUoLR0zCjYQcJth0TP7mbTKJCtKQEiv_UAE-mCJxssTAgzdo/exec';
 
   // =====================
   // 退勤送信
@@ -722,6 +727,7 @@
       hourlyWage: STAFF_WAGE[currentEntry.staff] || 1226,
       allowance:  currentEntry.allowance || 0,
       calcPay:    currentEntry.calcPay,
+      gmBreakMins: currentEntry.gmBreak || 0,
       workMins:   currentEntry.calcPay ? currentEntry.calcPay.workMins : 0,
       overMins:   currentEntry.calcPay ? currentEntry.calcPay.overMins : 0,
       overPay:    currentEntry.calcPay ? currentEntry.calcPay.overPay  : 0,
