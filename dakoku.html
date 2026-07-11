@@ -119,18 +119,38 @@
 
       <!-- GM公演追加項目 -->
       <div class="gm-block" id="gm-block">
-        <div class="section-label">公演作品</div>
-        <select id="gm-title">
-          <option value="">選択してください</option>
-          <option value="8CAMP" data-allowance="1000">8CAMP</option>
-          <option value="夏色漂流詩" data-allowance="500">夏色漂流詩</option>
-          <option value="夜明ケヨリモ向コウ側" data-allowance="500">夜明ケヨリモ向コウ側</option>
-          <option value="あなたの原罪" data-allowance="0">あなたの原罪</option>
-        </select>
         <div class="section-label">時間帯</div>
-        <select id="gm-session">
+        <select id="gm-session" onchange="onGmSessionChange()">
           <option value="">選択してください</option>
         </select>
+        <div id="gm-title-single-wrap">
+          <div class="section-label">公演作品</div>
+          <select id="gm-title">
+            <option value="">選択してください</option>
+            <option value="8CAMP" data-allowance="1000">8CAMP</option>
+            <option value="夏色漂流詩" data-allowance="500">夏色漂流詩</option>
+            <option value="夜明ケヨリモ向コウ側" data-allowance="500">夜明ケヨリモ向コウ側</option>
+            <option value="あなたの原罪" data-allowance="0">あなたの原罪</option>
+          </select>
+        </div>
+        <div id="gm-title-double-wrap" class="hidden">
+          <div class="section-label">昼公演の作品</div>
+          <select id="gm-title-day">
+            <option value="">選択してください</option>
+            <option value="8CAMP" data-allowance="1000">8CAMP</option>
+            <option value="夏色漂流詩" data-allowance="500">夏色漂流詩</option>
+            <option value="夜明ケヨリモ向コウ側" data-allowance="500">夜明ケヨリモ向コウ側</option>
+            <option value="あなたの原罪" data-allowance="0">あなたの原罪</option>
+          </select>
+          <div class="section-label">夜公演の作品</div>
+          <select id="gm-title-night">
+            <option value="">選択してください</option>
+            <option value="8CAMP" data-allowance="1000">8CAMP</option>
+            <option value="夏色漂流詩" data-allowance="500">夏色漂流詩</option>
+            <option value="夜明ケヨリモ向コウ側" data-allowance="500">夜明ケヨリモ向コウ側</option>
+            <option value="あなたの原罪" data-allowance="0">あなたの原罪</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -264,6 +284,13 @@
     if (getVal('shift-type') === 'gm') updateGmSessions();
   }
 
+  function onGmSessionChange() {
+    const val = getVal('gm-session');
+    const isDouble = val && (val.startsWith('上野両') || val.startsWith('横浜両'));
+    document.getElementById('gm-title-single-wrap').classList.toggle('hidden', isDouble);
+    document.getElementById('gm-title-double-wrap').classList.toggle('hidden', !isDouble);
+  }
+
   function updateGmSessions() {
     const store = getVal('store');
     const sel = document.getElementById('gm-session');
@@ -326,15 +353,24 @@
       alert('店舗・スタッフ・シフト区分を選択してください');
       return false;
     }
-    if (getVal('shift-type') === 'gm' && (!getVal('gm-title') || !getVal('gm-session'))) {
-      alert('公演作品と時間帯を選択してください');
-      return false;
+    if (getVal('shift-type') === 'gm') {
+      const sess = getVal('gm-session');
+      if (!sess) { alert('時間帯を選択してください'); return false; }
+      const isDouble = sess.startsWith('上野両') || sess.startsWith('横浜両');
+      if (isDouble) {
+        if (!getVal('gm-title-day') || !getVal('gm-title-night')) {
+          alert('昼公演・夜公演の作品をそれぞれ選択してください');
+          return false;
+        }
+      } else {
+        if (!getVal('gm-title')) { alert('公演作品を選択してください'); return false; }
+      }
     }
     return true;
   }
 
   function lockForm() {
-    ['store', 'staff', 'shift-type', 'gm-title', 'gm-session'].forEach(id => {
+    ['store', 'staff', 'shift-type', 'gm-title', 'gm-title-day', 'gm-title-night', 'gm-session'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.disabled = true;
     });
@@ -374,9 +410,22 @@
       entry.gmBreak   = parseInt(gmParts[3] || '0');  // 昼夜2公演の場合の休憩分
       if (!entry.wageIn || !entry.wageOut) { alert('公演時間帯を選択してください'); return; }
       provisionalWageOut = entry.wageOut;
-      entry.gmTitle = getVal('gm-title');
-      const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
-      entry.allowance = parseInt(tOpt.dataset.allowance) || 0;
+      const isDouble = entry.wageIn === '12:45' && entry.wageOut === '22:45' ||
+                       entry.wageIn === '10:15' && entry.wageOut === '20:15';
+      if (isDouble) {
+        const dayTitle   = getVal('gm-title-day');
+        const nightTitle = getVal('gm-title-night');
+        const dayOpt   = document.querySelector('#gm-title-day option[value="' + dayTitle + '"]');
+        const nightOpt = document.querySelector('#gm-title-night option[value="' + nightTitle + '"]');
+        const dayAllow   = parseInt(dayOpt   ? dayOpt.dataset.allowance   : '0') || 0;
+        const nightAllow = parseInt(nightOpt ? nightOpt.dataset.allowance : '0') || 0;
+        entry.gmTitle   = dayTitle + '（昼）／' + nightTitle + '（夜）';
+        entry.allowance = dayAllow + nightAllow;
+      } else {
+        entry.gmTitle = getVal('gm-title');
+        const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
+        entry.allowance = parseInt(tOpt.dataset.allowance) || 0;
+      }
     }
 
     // 遅刻チェック
@@ -516,9 +565,22 @@
       gmBreakMins = parseInt(gmParts[3] || '0');
       if (!gmWageIn || !gmWageOut) { alert('公演時間帯を選択してください'); return; }
       wageOut   = gmWageOut;
-      gmTitle   = getVal('gm-title');
-      const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
-      allowance = parseInt(tOpt.dataset.allowance) || 0;
+      const isDouble2 = gmWageIn === '12:45' && gmWageOut === '22:45' ||
+                        gmWageIn === '10:15' && gmWageOut === '20:15';
+      if (isDouble2) {
+        const dayTitle2   = getVal('gm-title-day');
+        const nightTitle2 = getVal('gm-title-night');
+        const dayOpt2   = document.querySelector('#gm-title-day option[value="' + dayTitle2 + '"]');
+        const nightOpt2 = document.querySelector('#gm-title-night option[value="' + nightTitle2 + '"]');
+        const dayAllow2   = parseInt(dayOpt2   ? dayOpt2.dataset.allowance   : '0') || 0;
+        const nightAllow2 = parseInt(nightOpt2 ? nightOpt2.dataset.allowance : '0') || 0;
+        gmTitle   = dayTitle2 + '（昼）／' + nightTitle2 + '（夜）';
+        allowance = dayAllow2 + nightAllow2;
+      } else {
+        gmTitle   = getVal('gm-title');
+        const tOpt = document.getElementById('gm-title').options[document.getElementById('gm-title').selectedIndex];
+        allowance = parseInt(tOpt.dataset.allowance) || 0;
+      }
     } else if (shift === 'early') {
       wageOut = '17:20';
       if (toMins(time) < toMins('17:20')) {
