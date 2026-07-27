@@ -514,6 +514,7 @@
         allowance: entry.allowance || 0,
         realName: STAFF_REAL[staff] || '',
         calcPay: provisionalCalcPay,
+        transport: calcTransport(staff, store),
         errors: entry.errors,
         multi: true,
         clientIP,
@@ -798,7 +799,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbx9N1vHnUWiiBpX9PNQw4fXLwDTMVU4Ym8NbW8mt7smmaxoGk2SS_fakJ6zHMa0ISsk/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbx8jpyZYlGQxMLtp4Vm2xLyopvg4xyYVlRBs6f0V-GzTM_8vLyxKERZvK25MSFXJ0jB/exec';
 
   // =====================
   // 退勤送信
