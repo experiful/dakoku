@@ -71,6 +71,9 @@
         <option>横浜駅前店</option>
         <option>大阪梅田店</option>
         <option>大阪なんば店</option>
+        <option>神戸三宮店</option>
+        <option>仙台一番町店</option>
+        <option>福岡天神店</option>
         <option>上野公演部屋</option>
         <option>横浜公演部屋</option>
       </select>
@@ -84,22 +87,20 @@
         <option>わいわい</option>
         <option>Kちゃん。</option>
         <option>さくら</option>
-        <option>イチドー</option>
+        <option>ねる</option>
+        <option>サイ</option>
         <option>まっき→</option>
         <option>うえんつ</option>
         <option>スパイシー</option>
         <option>こまち</option>
         <option>晴雨*</option>
         <option>将軍</option>
-        <option>ねる</option>
         <option>あお</option>
         <option>あーる</option>
-        <option>ライチュウ</option>
         <option>オータニ</option>
         <option>かいちょー</option>
         <option>わさび</option>
         <option>二代目</option>
-        <option>サイ</option>
         <option>ジョージ</option>
         <option>オクマ</option>
         <option>たんさん</option>
@@ -573,7 +574,7 @@
 
   function calcWage(wageIn, wageOut, wage, allowance, shift, extraBreakMins) {
     let mins = toMins(wageOut) - toMins(wageIn);
-    if (mins <= 0) return { normal: 0, late: 0, total: 0, workMins: 0, overMins: 0, overPay: 0, lateMins: 0 };
+    if (mins <= 0) return { normal: 0, late: 0, total: 0, workMins: 0, lateMins: 0 };
     // 全日シフトは1時間（60分）を休憩として引く。GM昼夜２公演はextraBreakMinsを使用
     const breakMins = (shift === 'full') ? 60 : (extraBreakMins || 0);
     const workMins = mins - breakMins;
@@ -583,14 +584,12 @@
     // 深夜時間（22時以降）
     const lateMins = outMins > midnight ? outMins - Math.max(inMins, midnight) : 0;
     // 残業時間（480分 = 8時間超過分）
-    const overMins = Math.max(0, workMins - 480);
     // 時間給：全労働時間 × 時給
     const normalPay = Math.round(workMins / 60 * wage);
     // 残業割増手当：8時間超過分 × 時給 × 0.25（25%部分のみ）
-    const overPay = Math.round(overMins / 60 * wage * 0.25);
     // 深夜割増手当：22時以降の時間 × 時給 × 0.25（25%部分のみ）
     const latePay = Math.round(lateMins / 60 * wage * 0.25);
-    return { normal: normalPay, late: latePay, overMins, overPay, total: normalPay + overPay + latePay + allowance, workMins, lateMins };
+    return { normal: normalPay, late: latePay, total: normalPay + latePay + allowance, workMins, lateMins };
   }
 
   function clockOut() {
@@ -695,7 +694,7 @@
     'SASA': 0,
     'わいわい': 0,
     'Kちゃん。': 1177,
-    'さくら': 1226, 'イチドー': 1226,
+    'さくら': 1226, 
     'まっき→': 1177,
     'うえんつ': 1226,
     'スパイシー': 1226,
@@ -705,7 +704,7 @@
     'ねる': 1177,
     'あお': 1177,
     'あーる': 1226,
-    'ライチュウ': 1226,
+    
     'オータニ': 1226,
     'かいちょー': 1226,
     'わさび': 1226,
@@ -724,7 +723,7 @@
     'SASA': '笹村周平',
     'わいわい': '國松拓実',
     'Kちゃん。': '中村圭佑',
-    'さくら': '櫻井邑菜', 'イチドー': '',
+    'さくら': '櫻井邑菜', 
     'まっき→': '酒巻 雄太',
     'うえんつ': '植木友寛',
     'スパイシー': '江口拓海',
@@ -734,7 +733,7 @@
     'ねる': '服部 文音',
     'あお': '髙橋 蒼生',
     'あーる': '北原姫',
-    'ライチュウ': '佐藤雷',
+    
     'オータニ': '古沢大樹',
     'かいちょー': '福島未夢',
     'わさび': '松崎莉奈',
@@ -755,7 +754,6 @@
     'わいわい':  { home: [], fare: {} },
     'Kちゃん。':  { home: ['大阪梅田店', '大阪なんば店'], fare: {'大阪梅田店': 500, '大阪なんば店': 500} },
     'さくら':  { home: ['横浜駅前店', '横浜公演部屋'], fare: {'東京銀座店': 1882, '東京新宿店': 1320, '東京池袋店': 1860, '横浜駅前店': 500, '上野公演部屋': 1818, '横浜公演部屋': 500} },
-    'イチドー': { home: [], fare: {} },
     'うえんつ':  { home: ['東京銀座店', '上野公演部屋'], fare: {'東京銀座店': 440, '東京新宿店': 774, '東京池袋店': 774, '横浜駅前店': 1238, '上野公演部屋': 356, '横浜公演部屋': 1238} },
     'スパイシー':  { home: ['横浜駅前店', '横浜公演部屋'], fare: {'東京銀座店': 2330, '東京新宿店': 1110, '東京池袋店': 1508, '横浜駅前店': 500, '上野公演部屋': 2150, '横浜公演部屋': 500} },
     'こまち':  { home: ['東京新宿店', '東京池袋店'], fare: {'東京銀座店': 856, '東京新宿店': 500, '東京池袋店': 500, '横浜駅前店': 950, '上野公演部屋': 918, '横浜公演部屋': 950} },
@@ -765,7 +763,6 @@
     'ねる':  { home: ['大阪梅田店', '大阪なんば店'], fare: {'大阪梅田店': 500, '大阪なんば店': 500} },
     'あお':  { home: ['大阪梅田店', '大阪なんば店'], fare: {'大阪梅田店': 500, '大阪なんば店': 500} },
     'あーる':  { home: ['東京新宿店', '東京池袋店'], fare: {'東京銀座店': 418, '東京新宿店': 500, '東京池袋店': 500, '横浜駅前店': 1560, '上野公演部屋': 504, '横浜公演部屋': 1560} },
-    'ライチュウ':  { home: ['東京新宿店', '東京池袋店'], fare: {'東京銀座店': 838, '東京新宿店': 500, '東京池袋店': 500, '横浜駅前店': 1894, '上野公演部屋': 854, '横浜公演部屋': 1894} },
     'オータニ':  { home: ['東京新宿店', '東京池袋店'], fare: {'東京銀座店': 1412, '東京新宿店': 500, '東京池袋店': 500, '横浜駅前店': 2068, '上野公演部屋': 1056, '横浜公演部屋': 2068} },
     'かいちょー':  { home: ['東京銀座店', '上野公演部屋'], fare: {'東京銀座店': 500, '東京新宿店': 1256, '東京池袋店': 858, '横浜駅前店': 1894, '上野公演部屋': 500, '横浜公演部屋': 1894} },
     'わさび':  { home: ['東京新宿店', '東京池袋店'], fare: {'東京銀座店': 504, '東京新宿店': 500, '東京池袋店': 500, '横浜駅前店': 1122, '上野公演部屋': 940, '横浜公演部屋': 1122} },
@@ -797,7 +794,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbx8jpyZYlGQxMLtp4Vm2xLyopvg4xyYVlRBs6f0V-GzTM_8vLyxKERZvK25MSFXJ0jB/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwljwczOGfb-E4rgedWtxYyGtoPPWY_lq1KEFe5yxb5caDAT1uZh5RzRKFdSN8Ttsj9/exec';
 
   // =====================
   // 退勤送信
@@ -840,8 +837,6 @@
       calcPay:    currentEntry.calcPay,
       gmBreakMins: currentEntry.gmBreak || 0,
       workMins:   currentEntry.calcPay ? currentEntry.calcPay.workMins : 0,
-      overMins:   currentEntry.calcPay ? currentEntry.calcPay.overMins : 0,
-      overPay:    currentEntry.calcPay ? currentEntry.calcPay.overPay  : 0,
       lateMins:   currentEntry.calcPay ? currentEntry.calcPay.lateMins : 0,
       transport:  transport,
       totalWithTransport: totalWithTransport,
