@@ -677,15 +677,19 @@
       outTime: time, wageOut,
       lastCustomer, allowance,
       gmTitle, calcPay: pay,
-      errors: (() => { const _t = calcTransport(staff, store); return [...outErrors, ...(typeof _t === 'string' ? [_t] : [])]; })()
+      errors: outErrors
     };
 
     // 退勤ボタンを「送信中...」に変更
     const btns = document.querySelectorAll('.btn-out');
     btns.forEach(b => { b.textContent = '送信中...'; b.disabled = true; });
 
-    // 退勤を即座に送信
-    sendData(time, wageOut, lastCustomer, outErrors);
+    // 退勤を即座に送信（transportエラーをoutErrorsに追加）
+    const _clockOutTransport = calcTransport(staff, store);
+    const _finalErrors = typeof _clockOutTransport === 'string'
+      ? [...new Set([...outErrors, _clockOutTransport])]
+      : [...new Set(outErrors)];
+    sendData(time, wageOut, lastCustomer, _finalErrors);
   }
 
   // =====================
@@ -780,7 +784,7 @@
   const NO_ADDRESS_STAFF = ['ゆっかさん', 'まち', 'まぁちゃん', 'こゆき', 'はんびん'];
 
   function calcTransport(staff, store) {
-    if (NO_ADDRESS_STAFF.includes(staff)) return '⚠️要確認⚠️';
+    if (NO_ADDRESS_STAFF.includes(staff)) return '⚠️交通費確認⚠️';
     const data = TRANSPORT[staff];
     if (!data) return 0;
     const fare = data.fare[store] || 0;
@@ -798,7 +802,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRqeOPZxbpqBRIXbDXeG9eozrH-Ulfqaz9846viOdBWf_lgiy1vv9eRwEcl8NqnPan/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycby8BmAeY1Qyrfv4KF4pOAoKaWHo88qHodlpC_9LdUQOygwfxbK2zjzLxxQY7Ax7qUY8/exec';
 
   // =====================
   // 退勤送信
