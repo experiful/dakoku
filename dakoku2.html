@@ -677,7 +677,7 @@
       outTime: time, wageOut,
       lastCustomer, allowance,
       gmTitle, calcPay: pay,
-      errors: [...outErrors, ..._transportError]
+      errors: (() => { const _t = calcTransport(currentEntry.staff || store, store); return [...outErrors, ...(typeof _t === 'string' ? [_t] : [])]; })()
     };
 
     // 退勤ボタンを「送信中...」に変更
