@@ -82,42 +82,50 @@
       <select id="staff">
         <option value="">選択してください</option>
 
+        <!-- 社員 -->
         <option>LEOMAX</option>
         <option>SASA</option>
         <option>わいわい</option>
         <option>K。</option>
         <option>さくら</option>
-        <option>エルサ</option>
         <option>ねる</option>
         <option>サイ</option>
         <option>ねむ</option>
-        <option>まっき→</option>
+        <!-- 銀座・上野 -->
         <option>うえんつ</option>
-        <option>スパイシー</option>
-        <option>こまち</option>
-        <option>晴雨*</option>
-        <option>将軍</option>
-        <option>あお</option>
+        <option>エルサ</option>
         <option>あーる</option>
+        <option>澪</option>
+        <option>こよみ</option>
+        <!-- 新宿・池袋 -->
+        <option>こまち</option>
+        <option>将軍</option>
         <option>オータニ</option>
         <option>ゆっかさん</option>
         <option>まち</option>
         <option>ジョージ</option>
-        <option>オクマ</option>
         <option>たんさん</option>
-        <option>澪</option>
-        <option>こよみ</option>
+        <option>岳</option>
+        <!-- 横浜 -->
+        <option>スパイシー</option>
+        <option>晴雨*</option>
+        <option>とる子</option>
+        <!-- 梅田・なんば -->
+        <option>まっき→</option>
+        <option>あお</option>
+        <option>オクマ</option>
+        <option>リプトン</option>
+        <!-- 神戸 -->
         <option>まぁちゃん</option>
         <option>こゆき</option>
         <option>はんびん</option>
-        <option>めんま</option>
-        <option>あちゃ</option>
+        <!-- 仙台 -->
         <option>すあら</option>
         <option>にわのうぐいす</option>
-        <option>とる子</option>
-        <option>リプトン</option>
         <option>からーすぷれー</option>
-        <option>岳</option>
+        <!-- 福岡 -->
+        <option>めんま</option>
+        <option>あちゃ</option>
         <option>ふくおか</option>
 
       </select>
@@ -507,7 +515,7 @@
     // 出勤打刻時点で仮のシフト終了時刻を使い暫定の給与を計算して送信
     // （退勤打刻を忘れた場合でも給与が0円にならないようにするため）
     const provisionalCalcPay = (entry.wageIn && provisionalWageOut)
-      ? calcWage(entry.wageIn, provisionalWageOut, STAFF_WAGE[staff] || 1226, entry.allowance || 0, shift, entry.gmBreak || 0)
+      ? calcWage(entry.wageIn, provisionalWageOut, STAFF_WAGE[staff] || 1280, entry.allowance || 0, shift, entry.gmBreak || 0)
       : null;
 
     // ワンオペ手当（GAS側で計算するが、HTML側では送信しない。GAS側で完結する）
@@ -527,7 +535,7 @@
         wageOut: entry.wageOut || '',
         gmBreakMins: entry.gmBreak || 0,
         provisionalWageOut: provisionalWageOut,
-        hourlyWage: STAFF_WAGE[staff] || 1226,
+        hourlyWage: STAFF_WAGE[staff] || 1280,
         allowance: entry.allowance || 0,
         realName: STAFF_REAL[staff] || '',
         calcPay: provisionalCalcPay,
@@ -679,7 +687,7 @@
     }
 
     const finalWageIn = (shift === 'gm') ? gmWageIn : wageIn;
-    const wage = STAFF_WAGE[staff] || 1226;
+    const wage = STAFF_WAGE[staff] || 1280;
     const pay = calcWage(finalWageIn, wageOut, wage, allowance, shift, gmBreakMins || 0);
 
     // currentEntryを退勤用に構築
@@ -743,31 +751,45 @@
   // 交通費データ・時給データ
   // =====================
 
+  // 最低賃金（2026/10/1改定）: 東京1,280 神奈川1,279 大阪1,231 兵庫1,172 宮城1,098 福岡1,114
   const STAFF_WAGE = {
-    'LEOMAX': 0,
-    'SASA': 0,
-    'わいわい': 0,
-    'K。': 1177,
-    'さくら': 1226,
-    'うえんつ': 1226,
-    'スパイシー': 1226,
-    'こまち': 1226,
-    '晴雨*': 1226,
-    '将軍': 1226,
-    'まっき→': 1177,
-    'ねる': 1177,
-    'あお': 1177,
-    'あーる': 1226,
-    'オータニ': 1226, 'ゆっかさん': 1226, 'まち': 1226,
-    'サイ': 1226,
-    'ジョージ': 1226,
-    'オクマ': 1177,
-    'たんさん': 1226,
-    'エルサ': 0,
-    '澪': 1226,
-    'こよみ': 1226, 'まぁちゃん': 1116, 'こゆき': 1116, 'はんびん': 1116,
-    'めんま': 1114, 'あちゃ': 1114, 'ねむ': 1038, 'すあら': 1038, 'にわのうぐいす': 1038, 'とる子': 1226,
-    'リプトン': 1177, 'からーすぷれー': 1038, '岳': 1226, 'ふくおか': 1114,
+    'LEOMAX': 1280,     // 東京
+    'SASA': 1280,       // 東京
+    'わいわい': 1280,    // 東京
+    'エルサ': 1280,      // 東京
+    'K。': 1231,         // 大阪
+    'まっき→': 1231,     // 大阪
+    'ねる': 1231,        // 大阪
+    'あお': 1231,        // 大阪
+    'オクマ': 1231,      // 大阪
+    'リプトン': 1231,    // 大阪
+    'まぁちゃん': 1172,  // 兵庫（神戸）
+    'こゆき': 1172,      // 兵庫（神戸）
+    'はんびん': 1172,    // 兵庫（神戸）
+    'ねむ': 1098,        // 宮城（仙台）
+    'すあら': 1098,      // 宮城（仙台）
+    'にわのうぐいす': 1098, // 宮城（仙台）
+    'からーすぷれー': 1098, // 宮城（仙台）
+    'めんま': 1114,      // 福岡
+    'あちゃ': 1114,      // 福岡
+    'ふくおか': 1114,    // 福岡
+    'さくら': 1279,      // 神奈川（横浜）
+    'スパイシー': 1279,  // 神奈川（横浜）
+    '晴雨*': 1279,       // 神奈川（横浜）
+    'とる子': 1279,      // 神奈川（横浜）
+    'うえんつ': 1280,    // 東京
+    'こまち': 1280,      // 東京
+    '将軍': 1280,        // 東京
+    'あーる': 1280,      // 東京
+    'オータニ': 1280,    // 東京
+    'ゆっかさん': 1280,  // 東京
+    'まち': 1280,        // 東京
+    'サイ': 1280,        // 東京
+    'ジョージ': 1280,    // 東京
+    'たんさん': 1280,    // 東京
+    '澪': 1280,          // 東京
+    'こよみ': 1280,      // 東京
+    '岳': 1280,          // 東京
   };
 
 
@@ -858,7 +880,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbx0VO7_3cgZIOcXQEEMlyHpHuqeURvdnwDgvOGZ0fFokxl-vFEuvpuiMo1xCQnZ6zxZ/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwJJai37yV5Pmkdz8p5DRr4gwEoKfRQK2xpsONQLWZp95yAWW_w9SWkJJoY8GSqX47I/exec';
 
   // =====================
   // 退勤送信
@@ -896,7 +918,7 @@
       wageOut:    currentEntry.wageOut,
       lastCustomer: currentEntry.lastCustomer,
       gmTitle:    currentEntry.gmTitle || '',
-      hourlyWage: STAFF_WAGE[currentEntry.staff] || 1226,
+      hourlyWage: STAFF_WAGE[currentEntry.staff] || 1280,
       allowance:  currentEntry.allowance || 0,
       calcPay:    currentEntry.calcPay,
       gmBreakMins: currentEntry.gmBreak || 0,
