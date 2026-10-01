@@ -510,6 +510,9 @@
       ? calcWage(entry.wageIn, provisionalWageOut, STAFF_WAGE[staff] || 1226, entry.allowance || 0, shift, entry.gmBreak || 0)
       : null;
 
+    // ワンオペ手当（GAS側で計算するが、HTML側では送信しない。GAS側で完結する）
+    // HTML側はワンオペ手当を送らない（GAS側のロジックに任せる）
+
     fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -530,7 +533,6 @@
         calcPay: provisionalCalcPay,
         transport: (() => { const t = calcTransport(staff, store); return typeof t === 'number' ? t : 0; })(),
         errors: (() => { const t = calcTransport(staff, store); return typeof t === 'string' ? [...entry.errors, t] : entry.errors; })(),
-        multi: false,
         clientIP,
       })
     })
@@ -700,6 +702,44 @@
   }
 
   // =====================
+  // 土日祝判定（GAS側と同じロジック）
+  // =====================
+  const JAPAN_HOLIDAYS_SET = new Set([
+    // 2025年
+    '2025/1/1','2025/1/13','2025/2/11','2025/2/23','2025/2/24',
+    '2025/3/20','2025/4/29','2025/5/3','2025/5/4','2025/5/5','2025/5/6',
+    '2025/7/21','2025/8/11','2025/9/15','2025/9/22','2025/9/23',
+    '2025/10/13','2025/11/3','2025/11/23','2025/11/24',
+    // 2026年
+    '2026/1/1','2026/1/12','2026/2/11','2026/2/23','2026/3/20',
+    '2026/4/29','2026/5/3','2026/5/4','2026/5/5','2026/5/6',
+    '2026/7/20','2026/8/11','2026/9/21','2026/9/22','2026/9/23',
+    '2026/10/12','2026/11/3','2026/11/23',
+    // 2027年（暫定）
+    '2027/1/1','2027/1/11','2027/2/11','2027/2/23','2027/3/21',
+    '2027/4/29','2027/5/3','2027/5/4','2027/5/5',
+    '2027/7/19','2027/8/11','2027/9/20','2027/9/23',
+    '2027/10/11','2027/11/3','2027/11/23',
+  ]);
+
+  function isTodayHoliday() {
+    const n = new Date();
+    const dateStr = n.getFullYear() + '/' + (n.getMonth() + 1) + '/' + n.getDate();
+    const dow = n.getDay();
+    return (dow === 0 || dow === 6 || JAPAN_HOLIDAYS_SET.has(dateStr));
+  }
+
+  // ワンオペ手当金額（対象外は0）
+  const HOLIDAY_BONUS_LARGE_STORES = ['横浜駅前店', '東京池袋店', '大阪梅田店', '福岡天神店'];
+  const HOLIDAY_BONUS_SMALL_STORES = ['東京銀座店', '東京新宿店', '大阪なんば店', '神戸三宮店', '仙台一番町店'];
+
+  function getHolidayBonusAmount(store) {
+    if (HOLIDAY_BONUS_LARGE_STORES.includes(store)) return 1000;
+    if (HOLIDAY_BONUS_SMALL_STORES.includes(store)) return 500;
+    return 0;
+  }
+
+  // =====================
   // 交通費データ・時給データ
   // =====================
 
@@ -818,7 +858,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycby8szusWVti7P3jKQgI-h40GBcIly9aHq8HcQe9eIelgfARPGN7L4-q86scqixP14Q2/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbw5DaDLZaFpLT4niUGKpPsGw-D6zL1foJ-rPZ-3ehiPEJEnaljnvPxd2ELe4-XeCpSb/exec';
 
   // =====================
   // 退勤送信
@@ -864,7 +904,6 @@
       lateMins:   currentEntry.calcPay ? currentEntry.calcPay.lateMins : 0,
       transport:  transport,
       totalWithTransport: totalWithTransport,
-      multi:      false,
       clientIP:   clientIP,
       errors:     currentEntry.errors
     };
