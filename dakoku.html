@@ -471,6 +471,9 @@
       gmTitle: '', errors: []
     };
 
+    // スタッフ固定エラーを追加
+    if (STAFF_FIXED_ERRORS[staff]) entry.errors.push(STAFF_FIXED_ERRORS[staff]);
+
     // 仮のシフト終了時刻（GM公演はセッション終了時刻、それ以外はprovisionalWageOutMap）
     let provisionalWageOut = provisionalWageOutMap[shift] || '';
 
@@ -628,6 +631,9 @@
     let wageOut, lastCustomer = null;
     const outErrors = [];
 
+    // スタッフ固定エラーを追加
+    if (STAFF_FIXED_ERRORS[staff]) outErrors.push(STAFF_FIXED_ERRORS[staff]);
+
     // GM公演のシフト開始・終了時刻を取得
     let gmTitle = '', allowance = 0, gmWageIn = wageIn, gmWageOut = '', gmBreakMins = 0;
     if (shift === 'gm') {
@@ -752,6 +758,11 @@
   // 交通費データ・時給データ
   // =====================
 
+  // スタッフごとに打刻時に必ず付与する固定エラー文言
+  const STAFF_FIXED_ERRORS = {
+    'サーシャ': '⚠️要確認',
+  };
+
   // 最低賃金（2026/10/1改定）: 東京1,280 神奈川1,279 大阪1,231 兵庫1,172 宮城1,098 福岡1,114
   const STAFF_WAGE = {
     'LEOMAX': 1280,     // 東京
@@ -819,6 +830,7 @@
     '澪': '布田美桜莉',
     'こよみ': '大胡田陽菜', 'まぁちゃん': '長倉愛華', 'こゆき': '須見菜夏子', 'とる子': '安池玲美', 'にわのうぐいす': '古山颯太郎', 'すあら': '白幡みどり', 'あちゃ': '川崎茜', 'めんま': '石原心純', 'はんびん': '増田結衣',
     'リプトン': '高橋陸斗', 'からーすぷれー': '及川莉穂', '岳': '佐野志門', 'ふくおか': '福尾哉人',
+    'サーシャ': '',
   };
 
 
@@ -850,6 +862,7 @@
     'にわのうぐいす':  { home: ['仙台一番町店'], fare: {'仙台一番町店': 506} },
     'ねむ':  { home: ['仙台一番町店'], fare: {'仙台一番町店': 260} },
     'すあら':  { home: ['仙台一番町店'], fare: {'仙台一番町店': 420} },
+    'サーシャ': { home: ['仙台一番町店'], fare: {} },
     'あちゃ':  { home: ['福岡天神店'], fare: {'福岡天神店': 800} },
     'めんま':  { home: ['福岡天神店'], fare: {'福岡天神店': 960} },
     'はんびん':  { home: ['神戸三宮店'], fare: {'神戸三宮店': 980} },
@@ -882,7 +895,7 @@
   // =====================
   // 送信（Google Sheets連携）
   // =====================
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwJJai37yV5Pmkdz8p5DRr4gwEoKfRQK2xpsONQLWZp95yAWW_w9SWkJJoY8GSqX47I/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbx9PLoIC1vUOuf4DzgflmVPvKko1688KlG71IhTR9Amt6H3SUZfvgH_gfwBtHMucHvr/exec';
 
   // =====================
   // 退勤送信
